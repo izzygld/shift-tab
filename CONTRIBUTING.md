@@ -25,11 +25,11 @@ Key fields in `level.json`:
 | `id` | Must match the folder name |
 | `order` | Position in the level list (unique) |
 | `wcag` | Success criteria taught, with links to the W3C Understanding docs |
-| `modes` | `keyboard` and/or `screen-reader` |
+| `modes` | `keyboard`, `screen-reader`, and/or `pointer` (mouse or touch) |
 | `issue` | Number, title, reporter (name + assistive technology they use), body paragraphs |
-| `task` | What the player does to reproduce the barrier; `goalSelector` marks the element that completes it |
+| `task` | What the player does to reproduce the barrier. `goalSelector` marks an element whose click completes it, `goalKey` a key press (for example `Escape`). For time-based goals, the page can run `document.dispatchEvent(new CustomEvent('shift-tab:goal'))` |
 | `fixes` | Groups of suggested changes. Each group has a `find` snippet (must appear exactly once in `page.html`) and `options` with `replace`, `correct`, and `feedback` |
-| `checks` | axe-core rule IDs and/or custom checks that must pass to merge |
+| `checks` | axe-core rule IDs and/or custom checks that must pass to merge. Custom checks: `focus-indicator`, `native-controls`, `modal-escape`, `visible-label`, `error-identification`, `no-drag-only`, `timing-adjustable`, `state-exposed` |
 | `merged` | The reporter's reply and "what you learned" bullets |
 
 Run `npm run validate` before opening a pull request. CI runs it too.

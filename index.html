@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#0f172a" />
   </head>
   <body>
-    <a class="skip-link" href="#level-heading">Skip to the level</a>
+    <a class="skip-link" id="skip-link" href="#title-heading">Skip to main content</a>
 
     <header class="topbar">
       <div class="brand">
@@ -26,14 +26,17 @@
       <div class="topbar-tools">
         <p id="progress" class="progress"></p>
         <button id="sound-toggle" type="button" class="ghost" aria-pressed="true">Sound effects</button>
+        <button id="home-btn" type="button" class="ghost" hidden>Title screen</button>
       </div>
     </header>
 
-    <nav class="levels-nav" aria-label="Levels">
+    <main id="title-screen" class="screen title-screen" aria-labelledby="title-heading"></main>
+
+    <nav class="levels-nav" id="levels-nav" aria-label="Levels" hidden>
       <ol id="level-list" class="level-list"></ol>
     </nav>
 
-    <main id="main" class="layout">
+    <main id="main" class="layout" hidden>
       <section id="issue" class="card issue" aria-labelledby="issue-heading"></section>
 
       <section class="card stage" aria-labelledby="level-heading">
@@ -75,6 +78,8 @@
 
       <section id="pr" class="card pr" aria-labelledby="pr-heading"></section>
     </main>
+
+    <main id="ending" class="screen ending" aria-labelledby="ending-heading" hidden></main>
 
     <footer class="footer">
       <p>

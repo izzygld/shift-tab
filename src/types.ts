@@ -1,4 +1,4 @@
-export type Mode = 'keyboard' | 'screen-reader';
+export type Mode = 'keyboard' | 'screen-reader' | 'pointer';
 
 export interface FixOption {
   id: string;

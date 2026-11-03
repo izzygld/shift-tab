@@ -1,0 +1,94 @@
+{
+  "id": "06-small-targets",
+  "order": 6,
+  "title": "Small Targets",
+  "wcag": [
+    { "id": "2.5.8", "name": "Target Size (Minimum)", "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html" },
+    { "id": "2.5.7", "name": "Dragging Movements", "url": "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html" }
+  ],
+  "modes": ["pointer", "keyboard"],
+  "issue": {
+    "number": 106,
+    "title": "RSVP controls are too small to hit",
+    "reporter": { "name": "Ana M.", "uses": "Head pointer" },
+    "body": [
+      "I use a head pointer. The + and − buttons for guests are tiny and right next to each other, so I keep pressing the wrong one.",
+      "Arrival time only changes if you drag a small handle along the line. Holding a press while moving isn't something I can do reliably, so I'm stuck at 6:00."
+    ]
+  },
+  "task": {
+    "instruction": "With your mouse, trackpad or touch screen, set 3 guests and an arrival time of 7:00 PM, then select Save RSVP.",
+    "goalSelector": "[data-goal]",
+    "afterReproduce": "The + and − buttons are 18 pixels and touching, and arrival time only changes by dragging. Both shut out anyone whose pointer is less precise."
+  },
+  "fixes": [
+    {
+      "id": "stepper",
+      "title": "Stylesheet: the guest stepper buttons",
+      "find": ".stepper button { width: 18px; height: 18px; padding: 0; font-size: 0.75rem; line-height: 1; }",
+      "options": [
+        {
+          "id": "bigger-symbols",
+          "label": "Make the + and − symbols bigger",
+          "replace": ".stepper button { width: 18px; height: 18px; padding: 0; font-size: 1.5rem; line-height: 1; }",
+          "correct": false,
+          "feedback": "The symbols got bigger, but the area you have to hit is exactly the same size."
+        },
+        {
+          "id": "20px",
+          "label": "Make the buttons 20 by 20 pixels",
+          "replace": ".stepper button { width: 20px; height: 20px; padding: 0; font-size: 0.875rem; line-height: 1; }",
+          "correct": false,
+          "feedback": "Closer, but still under the 24 by 24 pixel minimum, and the two buttons still touch."
+        },
+        {
+          "id": "44px",
+          "label": "Make the buttons 44 by 44 pixels",
+          "replace": ".stepper button { width: 44px; height: 44px; padding: 0; font-size: 1.25rem; line-height: 1; }",
+          "correct": true,
+          "feedback": "Comfortably above the 24 by 24 minimum. 44 pixels is a common recommendation for touch."
+        }
+      ]
+    },
+    {
+      "id": "arrival",
+      "title": "The arrival time control",
+      "find": "<div class=\"drag-track\" id=\"arrival\" data-drag><div class=\"drag-handle\"></div></div>",
+      "options": [
+        {
+          "id": "hint",
+          "label": "Add an instruction: \"Drag the handle to set your time\"",
+          "replace": "<p>Drag the handle to set your time.</p>\n      <div class=\"drag-track\" id=\"arrival\" data-drag><div class=\"drag-handle\"></div></div>",
+          "correct": false,
+          "feedback": "Instructions don't help someone who can't drag. There needs to be another way to set the time."
+        },
+        {
+          "id": "role-slider",
+          "label": "Add role=\"slider\" and tabindex=\"0\" to the track",
+          "replace": "<div class=\"drag-track\" id=\"arrival\" data-drag role=\"slider\" tabindex=\"0\" aria-labelledby=\"arrival-label\" aria-valuemin=\"17\" aria-valuemax=\"21\" aria-valuenow=\"18\"><div class=\"drag-handle\"></div></div>",
+          "correct": false,
+          "feedback": "It's announced as a slider now, but arrow keys, clicks and taps still do nothing. It still only works by dragging."
+        },
+        {
+          "id": "range",
+          "label": "Use a native <input type=\"range\">",
+          "replace": "<input type=\"range\" id=\"arrival\" min=\"17\" max=\"21\" step=\"0.5\" value=\"18\" aria-labelledby=\"arrival-label\" aria-valuetext=\"6:00 PM\">",
+          "correct": true,
+          "feedback": "A native range input works with a single click or tap on the track, with arrow keys, and with screen readers. Dragging becomes optional."
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["target-size"],
+    "custom": ["no-drag-only"]
+  },
+  "merged": {
+    "reply": "Three guests, 7:00 PM, first try. I didn't have to fight the page once.",
+    "learn": [
+      "Targets need to be at least 24 by 24 CSS pixels, or have enough space around them.",
+      "Bigger symbols don't help if the clickable area stays small.",
+      "Anything you can drag must also work with a single click or tap."
+    ]
+  }
+}

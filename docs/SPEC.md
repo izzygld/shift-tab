@@ -106,6 +106,7 @@ Why: it mirrors code review and CI checks that every developer knows, beginners 
 | Zoom and reflow | 200% text, 400% zoom / 320px reflow | Planned |
 | Switch and voice | Scanning selection, "click [name]" commands | Planned |
 | Contrast and color | Contrast and color-only meaning checks, framed as a design test | Planned |
+| Mouse or touch | Normal pointer use, for target size and dragging levels | Built |
 
 ## 9. Levels
 
@@ -115,9 +116,9 @@ Why: it mirrors code review and CI checks that every developer knows, beginners 
 | 2 | Nameless Buttons | Unnamed icon button, logo link with no alt text | 1.1.1, 2.4.4, 4.1.2 | Built |
 | 3 | Div Soup | Clickable `<div>`s that keyboards can't reach | 2.1.1, 4.1.2 | Built |
 | 4 | No Way Out | Modal traps keyboard focus | 2.1.2 | Built |
-| 5 | Form Fail | Placeholder used as label, errors shown only in red | 1.3.1, 3.3.1, 1.4.1 | Planned |
-| 6 | Small Targets | Tiny tap targets, drag-only controls | 2.5.8, 2.5.7 | Planned |
-| 7 | Friday Night (final) | Donation checkout combining earlier barriers, plus a timeout | 2.2.1 + earlier | Planned |
+| 5 | Form Fail | Placeholder used as label, errors shown only in red | 3.3.2, 3.3.1, 1.4.1 | Built |
+| 6 | Small Targets | Tiny touching tap targets, drag-only control | 2.5.8, 2.5.7 | Built |
+| 7 | Friday Night (final) | Donation timeout, color-only selection, unlabeled checkbox | 2.2.1, 1.4.1, 4.1.2 | Built |
 
 Stretch: reflow (1.4.10), contrast (1.4.3), headings and landmarks (1.3.1 / 2.4.1), focus hidden under sticky headers (2.4.11), motion (2.2.2, 2.3.3).
 
@@ -166,10 +167,10 @@ Stretch: reflow (1.4.10), contrast (1.4.3), headings and landmarks (1.3.1 / 2.4.
 
 | Dates | Milestone |
 |---|---|
-| Nov 3–7 | Spec, repo, Pages, engine, levels 1–4, sound cues, visual design ✅ |
-| Nov 8–14 | Title screen and ending, Figma design pass, polish |
-| Nov 15–21 | "Write your own change" editor, levels 5–6 |
-| Nov 22–26 | Level 7, playtests, accessibility audit of the game |
+| Nov 3–7 | Spec, repo, Pages, engine, all 7 levels, title and ending screens, sound cues, visual design ✅ |
+| Nov 8–14 | Figma design pass, "write your own change" editor, polish |
+| Nov 15–21 | Consultant review of issue text, paid playtests |
+| Nov 22–26 | Fixes from playtests, accessibility audit of the game with NVDA and VoiceOver |
 | Nov 27–Dec 1 | Polish, itch.io page, final README, AI disclosure, **submit** |
 | Dec 3 | International Day of Persons with Disabilities: launch post |
 | May 20, 2027 | Global Accessibility Awareness Day: second push, community levels |

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Volunteer sign-up · Commons</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; color: #1f2328; background: #ffffff; line-height: 1.5; }
+      header { padding: 1rem 1.5rem; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+      .site-name { font-weight: 700; color: #1f2328; }
+      main { padding: 1.5rem; max-width: 32rem; }
+      .field { margin-bottom: 1.25rem; }
+      label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+      input { display: block; width: 100%; box-sizing: border-box; padding: 0.55rem 0.7rem; font: inherit; border: 1px solid #59636e; border-radius: 6px; }
+      input::placeholder { color: #8c959f; }
+      input.error { border: 2px solid #d1242f; }
+      .error-text { margin: 0.35rem 0 0; color: #a40e26; font-weight: 600; }
+      .error-text:empty { display: none; }
+      button { padding: 0.65rem 1.25rem; border: 0; border-radius: 6px; font: inherit; color: #fff; background: #1a7f37; cursor: pointer; }
+      #done { font-weight: 600; color: #1a7f37; }
+      :focus-visible { outline: 3px solid #1a5fb4; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="site-name" href="#home">Commons Community Center</a>
+    </header>
+    <main>
+      <h1>Volunteer for Friday</h1>
+      <p>We'll match you with a shift. All fields are required.</p>
+      <form id="signup" novalidate>
+        <div class="field">
+          <input id="name" type="text" placeholder="Full name" data-error="Enter your full name.">
+          <p class="error-text" id="name-error"></p>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="email" data-error="Enter an email address, like name@example.com.">
+          <p class="error-text" id="email-error"></p>
+        </div>
+        <button type="submit" data-goal>Sign up</button>
+        <p id="done" role="status"></p>
+      </form>
+    </main>
+    <script>
+      const form = document.getElementById('signup');
+
+      function resetForm() {
+        for (const field of form.querySelectorAll('input')) {
+          field.classList.remove('error');
+          field.removeAttribute('aria-invalid');
+          field.removeAttribute('aria-describedby');
+          document.getElementById(field.id + '-error').textContent = '';
+        }
+        document.getElementById('done').textContent = '';
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        resetForm();
+        const invalid = [];
+        for (const field of form.querySelectorAll('input')) {
+          if (!field.value.trim() || (field.type === 'email' && !field.value.includes('@'))) {
+            field.classList.add('error');
+            invalid.push(field);
+          }
+        }
+        if (invalid.length) invalid[0].focus();
+        else document.getElementById('done').textContent = "Thanks! We'll email your shift details.";
+      });
+    </script>
+  </body>
+</html>

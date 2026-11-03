@@ -1,0 +1,95 @@
+{
+  "id": "05-form-fail",
+  "order": 5,
+  "title": "Form Fail",
+  "wcag": [
+    { "id": "3.3.2", "name": "Labels or Instructions", "url": "https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html" },
+    { "id": "3.3.1", "name": "Error Identification", "url": "https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html" },
+    { "id": "1.4.1", "name": "Use of Color", "url": "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html" }
+  ],
+  "modes": ["screen-reader", "keyboard"],
+  "issue": {
+    "number": 105,
+    "title": "Volunteer form doesn't say what's wrong",
+    "reporter": { "name": "Sam O.", "uses": "Screen reader (JAWS)" },
+    "body": [
+      "The first field on the volunteer form has no label. I had to guess it wanted my name, and the gray hint text disappears the moment I start typing.",
+      "When I submitted, focus jumped back to the top but nothing told me what went wrong. A friend said the boxes turned red. I can't see that, and neither can my screen reader."
+    ]
+  },
+  "task": {
+    "instruction": "Select \"Move focus into the page\" with Screen reader view on. Tab through the form, then press Sign up with the fields empty. Listen for what tells you something went wrong.",
+    "goalSelector": "[data-goal]",
+    "afterReproduce": "The name field has no visible label, and the only sign of an error is a red border. Nothing says what went wrong or how to fix it."
+  },
+  "fixes": [
+    {
+      "id": "name-label",
+      "title": "The name field",
+      "find": "<input id=\"name\" type=\"text\" placeholder=\"Full name\" data-error=\"Enter your full name.\">",
+      "options": [
+        {
+          "id": "louder-placeholder",
+          "label": "Make the placeholder more prominent",
+          "replace": "<input id=\"name\" type=\"text\" placeholder=\"FULL NAME (REQUIRED)\" data-error=\"Enter your full name.\">",
+          "correct": false,
+          "feedback": "A placeholder is not a label. It disappears as soon as someone types, it's usually low contrast, and not every screen reader announces it."
+        },
+        {
+          "id": "aria-label",
+          "label": "Add aria-label=\"Full name\"",
+          "replace": "<input id=\"name\" type=\"text\" aria-label=\"Full name\" placeholder=\"Full name\" data-error=\"Enter your full name.\">",
+          "correct": false,
+          "feedback": "Screen readers get a name now, but there's still no visible label. Once someone starts typing, nothing on screen says what the field is for."
+        },
+        {
+          "id": "label",
+          "label": "Add a visible <label> linked with for=\"name\"",
+          "replace": "<label for=\"name\">Full name</label>\n          <input id=\"name\" type=\"text\" autocomplete=\"name\" data-error=\"Enter your full name.\">",
+          "correct": true,
+          "feedback": "A visible label that stays on screen, is announced by screen readers, and makes the text clickable too. autocomplete=\"name\" lets browsers fill it in."
+        }
+      ]
+    },
+    {
+      "id": "errors",
+      "title": "Script: how invalid fields are marked",
+      "find": "field.classList.add('error');",
+      "options": [
+        {
+          "id": "thicker-border",
+          "label": "Make the red border thicker",
+          "replace": "field.classList.add('error');\n            field.style.borderWidth = '4px';",
+          "correct": false,
+          "feedback": "Still only a visual signal. Screen reader users hear nothing, and people who don't perceive red see only a slightly thicker border."
+        },
+        {
+          "id": "aria-invalid",
+          "label": "Add aria-invalid=\"true\" to the field",
+          "replace": "field.classList.add('error');\n            field.setAttribute('aria-invalid', 'true');",
+          "correct": false,
+          "feedback": "Screen readers now say \"invalid entry\", which helps, but nobody is told what's wrong or how to fix it."
+        },
+        {
+          "id": "message",
+          "label": "Show a text message and link it to the field",
+          "replace": "field.classList.add('error');\n            field.setAttribute('aria-invalid', 'true');\n            field.setAttribute('aria-describedby', field.id + '-error');\n            document.getElementById(field.id + '-error').textContent = field.dataset.error;",
+          "correct": true,
+          "feedback": "Everyone sees a message in words, and screen readers read it when focus lands on the field: \"invalid entry, Enter your full name.\""
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["color-contrast"],
+    "custom": ["visible-label", "error-identification"]
+  },
+  "merged": {
+    "reply": "Now the field says \"Full name\" and when I miss something it tells me exactly what. Signed up for the setup shift!",
+    "learn": [
+      "Every field needs a visible label linked with <label for>. A placeholder is not a label.",
+      "Errors need words, not just color. Say what went wrong and how to fix it.",
+      "Link the message to the field with aria-describedby, and mark it with aria-invalid."
+    ]
+  }
+}

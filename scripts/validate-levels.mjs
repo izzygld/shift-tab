@@ -6,8 +6,8 @@ const root = new URL('../levels/', import.meta.url).pathname;
 const errors = [];
 const seenIds = new Set();
 const seenOrders = new Set();
-const MODES = new Set(['keyboard', 'screen-reader']);
-const CUSTOM_CHECKS = new Set(['focus-indicator', 'native-controls', 'modal-escape']);
+const MODES = new Set(['keyboard', 'screen-reader', 'pointer']);
+const CUSTOM_CHECKS = new Set(['focus-indicator', 'native-controls', 'modal-escape', 'visible-label', 'error-identification', 'no-drag-only', 'timing-adjustable', 'state-exposed']);
 
 for (const dir of readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory())) {
   const where = `levels/${dir.name}`;

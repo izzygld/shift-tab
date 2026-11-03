@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Donate · Commons</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; color: #1f2328; background: #ffffff; line-height: 1.5; }
+      header { padding: 1rem 1.5rem; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+      .site-name { font-weight: 700; color: #1f2328; }
+      .timer-bar { margin: 0; padding: 0.5rem 1.5rem; background: #fff8c5; border-bottom: 1px solid #d4a72c; font-weight: 600; }
+      .timer-bar:empty { display: none; }
+      main { padding: 1.5rem; max-width: 32rem; }
+      .label, legend { font-weight: 600; margin: 0 0 0.5rem; padding: 0; }
+      .amounts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1.25rem; padding: 0; border: 0; }
+      .amount { min-width: 4.5rem; padding: 0.6rem 1rem; border: 1px solid #59636e; border-radius: 6px; background: #fff; color: #1f2328; font: inherit; cursor: pointer; }
+      .amount.selected { background: #e8effa; }
+      .amount[aria-pressed="true"] { background: #0a3069; color: #fff; }
+      .amount[aria-pressed="true"]::before { content: "✓ "; }
+      label.amount { display: inline-flex; align-items: center; gap: 0.4rem; }
+      label.amount:has(input:checked) { background: #0a3069; color: #fff; }
+      label[for="card-name"] { display: block; font-weight: 600; }
+      #card-name { display: block; width: 100%; box-sizing: border-box; margin: 0.25rem 0 1.25rem; padding: 0.55rem 0.7rem; font: inherit; border: 1px solid #59636e; border-radius: 6px; }
+      .check { display: flex; align-items: center; gap: 0.5rem; }
+      .cta { margin-top: 1.5rem; padding: 0.65rem 1.25rem; border: 0; border-radius: 6px; font: inherit; color: #fff; background: #1a7f37; cursor: pointer; }
+      #status { font-weight: 600; color: #1a7f37; }
+      :focus-visible { outline: 3px solid #1a5fb4; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="site-name" href="#home">Commons Community Center</a>
+    </header>
+    <p class="timer-bar" id="timer" role="status"></p>
+    <main>
+      <h1>Donate to Friday Community Night</h1>
+      <form id="donate" novalidate>
+        <div class="amounts">
+          <p class="label">Amount</p>
+          <button type="button" class="amount" data-selectable onclick="pick(this)">$18</button>
+          <button type="button" class="amount" data-selectable onclick="pick(this)">$36</button>
+          <button type="button" class="amount" data-selectable onclick="pick(this)">$54</button>
+        </div>
+        <label for="card-name">Name on card</label>
+        <input id="card-name" type="text" autocomplete="cc-name">
+        <p class="check"><input type="checkbox" id="monthly"> <span>Make it a monthly gift</span></p>
+        <button type="submit" class="cta" data-goal>Donate</button>
+        <p id="status" role="status"></p>
+      </form>
+    </main>
+    <script>
+      var timerRunning = false;
+      let timerId;
+      const form = document.getElementById('donate');
+      const timer = document.getElementById('timer');
+
+      function startTimer(seconds) {
+        timerRunning = true;
+        let left = seconds;
+        const tick = () => {
+          timer.textContent = `Session expires in ${left} seconds.`;
+          if (left-- <= 0) expire();
+        };
+        timerId = setInterval(tick, 1000);
+        tick();
+      }
+      function stopTimer() {
+        clearInterval(timerId);
+        timerRunning = false;
+      }
+      function expire() {
+        stopTimer();
+        form.reset();
+        for (const b of document.querySelectorAll('[data-selectable]')) b.classList.remove('selected');
+        timer.textContent = 'Your session expired and the form was cleared. Please start again.';
+        document.dispatchEvent(new CustomEvent('shift-tab:goal'));
+      }
+      function pick(chosen) {
+        for (const b of document.querySelectorAll('.amount')) {
+          b.classList.toggle('selected', b === chosen);
+          if (b.hasAttribute('aria-pressed')) b.setAttribute('aria-pressed', String(b === chosen));
+        }
+      }
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        stopTimer();
+        timer.textContent = '';
+        document.getElementById('status').textContent = 'Thank you! Your gift helps feed neighbors on Friday.';
+      });
+
+      startTimer(45);
+    </script>
+  </body>
+</html>

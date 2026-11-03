@@ -1,0 +1,123 @@
+{
+  "id": "07-friday-night",
+  "order": 7,
+  "title": "Friday Night",
+  "wcag": [
+    { "id": "2.2.1", "name": "Timing Adjustable", "url": "https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html" },
+    { "id": "1.4.1", "name": "Use of Color", "url": "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html" },
+    { "id": "4.1.2", "name": "Name, Role, Value", "url": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" }
+  ],
+  "modes": ["screen-reader", "keyboard"],
+  "issue": {
+    "number": 107,
+    "title": "Donation page times out before I can finish",
+    "reporter": { "name": "Ji-woo P.", "uses": "Screen reader (VoiceOver)" },
+    "body": [
+      "The donation page gives me 45 seconds. By the time I've listened to the amounts and typed my name, it says my session expired and clears everything.",
+      "I also couldn't tell which amount I'd picked, because the buttons don't say. And the monthly checkbox is announced as just \"checkbox\"."
+    ]
+  },
+  "task": {
+    "instruction": "With Screen reader view on, try to donate: choose an amount, enter a name, and press Donate. Keep an eye on the timer above the form.",
+    "goalSelector": "[data-goal]",
+    "afterReproduce": "Made it or not, 45 seconds isn't enough for everyone. The selected amount is shown only by a faint color, and the monthly checkbox has no label."
+  },
+  "fixes": [
+    {
+      "id": "timer",
+      "title": "Script: the session timer",
+      "find": "startTimer(45);",
+      "options": [
+        {
+          "id": "longer",
+          "label": "Double the time to 90 seconds",
+          "replace": "startTimer(90);",
+          "correct": false,
+          "feedback": "Any fixed limit is still a guess about how long people need. Some people will always need more."
+        },
+        {
+          "id": "hide",
+          "label": "Hide the countdown so it isn't stressful",
+          "replace": "startTimer(45);\n      timer.hidden = true;",
+          "correct": false,
+          "feedback": "Now people lose their work with no warning at all."
+        },
+        {
+          "id": "remove",
+          "label": "Remove the time limit",
+          "replace": "// No time limit: a donation form doesn't need one.",
+          "correct": true,
+          "feedback": "Nothing here needs a time limit, so the best fix is to remove it. If you truly need one, let people turn it off, adjust it, or extend it with a simple action."
+        }
+      ]
+    },
+    {
+      "id": "amounts",
+      "title": "The amount buttons",
+      "find": "<div class=\"amounts\">\n          <p class=\"label\">Amount</p>\n          <button type=\"button\" class=\"amount\" data-selectable onclick=\"pick(this)\">$18</button>\n          <button type=\"button\" class=\"amount\" data-selectable onclick=\"pick(this)\">$36</button>\n          <button type=\"button\" class=\"amount\" data-selectable onclick=\"pick(this)\">$54</button>\n        </div>",
+      "options": [
+        {
+          "id": "labels",
+          "label": "Add aria-label=\"Donate $18\" (and so on) to each button",
+          "replace": "<div class=\"amounts\">\n          <p class=\"label\">Amount</p>\n          <button type=\"button\" class=\"amount\" data-selectable aria-label=\"Donate $18\" onclick=\"pick(this)\">$18</button>\n          <button type=\"button\" class=\"amount\" data-selectable aria-label=\"Donate $36\" onclick=\"pick(this)\">$36</button>\n          <button type=\"button\" class=\"amount\" data-selectable aria-label=\"Donate $54\" onclick=\"pick(this)\">$54</button>\n        </div>",
+          "correct": false,
+          "feedback": "The names are clearer, but which amount is selected is still shown only by color, and screen readers don't hear it at all."
+        },
+        {
+          "id": "pressed",
+          "label": "Add aria-pressed to the buttons",
+          "replace": "<div class=\"amounts\">\n          <p class=\"label\">Amount</p>\n          <button type=\"button\" class=\"amount\" data-selectable aria-pressed=\"false\" onclick=\"pick(this)\">$18</button>\n          <button type=\"button\" class=\"amount\" data-selectable aria-pressed=\"false\" onclick=\"pick(this)\">$36</button>\n          <button type=\"button\" class=\"amount\" data-selectable aria-pressed=\"false\" onclick=\"pick(this)\">$54</button>\n        </div>",
+          "correct": true,
+          "feedback": "Screen readers now say \"pressed\" for the chosen amount, and the stylesheet shows a check mark and strong contrast, so it doesn't rely on color."
+        },
+        {
+          "id": "radios",
+          "label": "Use native radio buttons in a fieldset",
+          "replace": "<fieldset class=\"amounts\">\n          <legend>Amount</legend>\n          <label class=\"amount\"><input type=\"radio\" name=\"amount\" value=\"18\"> $18</label>\n          <label class=\"amount\"><input type=\"radio\" name=\"amount\" value=\"36\"> $36</label>\n          <label class=\"amount\"><input type=\"radio\" name=\"amount\" value=\"54\"> $54</label>\n        </fieldset>",
+          "correct": true,
+          "feedback": "Radio buttons are built for \"pick one\": arrow keys move between them, screen readers say \"checked, 2 of 3\", and the dot shows the choice without relying on color."
+        }
+      ]
+    },
+    {
+      "id": "monthly",
+      "title": "The monthly gift checkbox",
+      "find": "<input type=\"checkbox\" id=\"monthly\"> <span>Make it a monthly gift</span>",
+      "options": [
+        {
+          "id": "title",
+          "label": "Add title=\"Monthly\" to the checkbox",
+          "replace": "<input type=\"checkbox\" id=\"monthly\" title=\"Monthly\"> <span>Make it a monthly gift</span>",
+          "correct": false,
+          "feedback": "A tooltip name only appears on hover, and selecting the words still does nothing."
+        },
+        {
+          "id": "aria-label",
+          "label": "Add aria-label=\"Make it a monthly gift\"",
+          "replace": "<input type=\"checkbox\" id=\"monthly\" aria-label=\"Make it a monthly gift\"> <span>Make it a monthly gift</span>",
+          "correct": false,
+          "feedback": "Screen readers get a name, but selecting the words still does nothing, so the only target is a tiny box."
+        },
+        {
+          "id": "label",
+          "label": "Change the span to a <label for=\"monthly\">",
+          "replace": "<input type=\"checkbox\" id=\"monthly\"> <label for=\"monthly\">Make it a monthly gift</label>",
+          "correct": true,
+          "feedback": "The checkbox has a name, and the whole sentence is now clickable, which makes a much bigger target."
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["label"],
+    "custom": ["timing-adjustable", "state-exposed", "visible-label"]
+  },
+  "merged": {
+    "reply": "I took my time, picked $36, made it monthly, and nothing expired. See everyone Friday.",
+    "learn": [
+      "Don't add time limits you don't need. If you need one, let people turn it off, adjust it, or extend it.",
+      "Selected states must be exposed to assistive technology and shown with more than color.",
+      "A visible <label> names a control and makes its text part of the target."
+    ]
+  }
+}

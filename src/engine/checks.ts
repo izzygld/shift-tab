@@ -18,6 +18,7 @@ const AXE_LABELS: Record<string, string> = {
   'color-contrast': 'Text has enough color contrast (WCAG 1.4.3)',
   'aria-dialog-name': 'Pop-ups have accessible names (WCAG 4.1.2)',
   label: 'Form fields have labels (WCAG 1.3.1, 4.1.2)',
+  'target-size': 'Targets are at least 24 by 24 pixels (WCAG 2.5.8)',
 };
 
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -121,6 +122,62 @@ const CUSTOM_CHECKS: Record<string, (doc: Document) => CheckResult> = {
     const closed = modal.hidden;
     win.openModal?.();
     return closed ? pass(id, label, 'Escape closes the pop-up.') : fail(id, label, 'Escape does nothing, and Tab keeps focus inside the pop-up. There is no way out.');
+  },
+
+  'visible-label': (doc) => {
+    const id = 'visible-label';
+    const label = 'Every form field has a visible label (WCAG 3.3.2, 1.3.1)';
+    const fields = Array.from(doc.querySelectorAll<HTMLInputElement>('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea'));
+    const unlabeled = fields.filter((f) => !Array.from(f.labels ?? []).some((l) => l.textContent?.trim()));
+    if (!unlabeled.length) return pass(id, label, 'Every field has a visible <label>.');
+    return fail(id, label, `${unlabeled.length} field${unlabeled.length === 1 ? ' has' : 's have'} no visible <label>: ${unlabeled.map((f) => `#${f.id || f.type}`).join(', ')}.`);
+  },
+
+  'error-identification': (doc) => {
+    const id = 'error-identification';
+    const label = 'Errors are described in text, not just color (WCAG 3.3.1, 1.4.1)';
+    const form = doc.querySelector<HTMLFormElement>('form');
+    const win = doc.defaultView as (Window & typeof globalThis & { resetForm?: () => void }) | null;
+    if (!form || !win) return pass(id, label, 'No form on this page.');
+    form.dispatchEvent(new win.Event('submit', { bubbles: true, cancelable: true }));
+    const invalid = Array.from(form.querySelectorAll<HTMLElement>('.error, [aria-invalid="true"]'));
+    const silent = invalid.filter((f) => {
+      const ids = (f.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+      return !ids.some((ref) => doc.getElementById(ref)?.textContent?.trim());
+    });
+    win.resetForm?.();
+    if (!invalid.length) return fail(id, label, 'Submitting the empty form showed no errors at all.');
+    if (!silent.length) return pass(id, label, 'Each invalid field has a text message linked with aria-describedby.');
+    return fail(id, label, `${silent.length} invalid field${silent.length === 1 ? ' is' : 's are'} marked only visually, with no linked message.`);
+  },
+
+  'no-drag-only': (doc) => {
+    const id = 'no-drag-only';
+    const label = 'Nothing requires dragging (WCAG 2.5.7)';
+    const dragOnly = doc.querySelectorAll('[data-drag]').length;
+    return dragOnly
+      ? fail(id, label, 'Arrival time can only be set by dragging. It needs a single-click, tap or keyboard alternative.')
+      : pass(id, label, 'Every control works without dragging.');
+  },
+
+  'timing-adjustable': (doc) => {
+    const id = 'timing-adjustable';
+    const label = 'Time limits can be turned off, adjusted or extended (WCAG 2.2.1)';
+    const win = doc.defaultView as (Window & { timerRunning?: boolean }) | null;
+    if (!win?.timerRunning) return pass(id, label, 'No time limit.');
+    if (doc.querySelector('[data-extend]')) return pass(id, label, 'The time limit can be extended.');
+    return fail(id, label, 'A short time limit runs with no way to turn it off, adjust it, or extend it.');
+  },
+
+  'state-exposed': (doc) => {
+    const id = 'state-exposed';
+    const label = 'Selected state is exposed and not shown by color alone (WCAG 4.1.2, 1.4.1)';
+    const hidden = Array.from(doc.querySelectorAll('[data-selectable]')).filter(
+      (el) => !el.matches('input[type="radio"], input[type="checkbox"]') && !['aria-pressed', 'aria-checked', 'aria-selected'].some((a) => el.hasAttribute(a)),
+    );
+    return hidden.length
+      ? fail(id, label, `${hidden.length} options show which one is selected only with a background color.`)
+      : pass(id, label, 'The selected option is announced and clearly marked.');
   },
 };
 
