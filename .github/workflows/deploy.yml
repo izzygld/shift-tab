@@ -63,3 +63,42 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  itch:
+    name: Publish to itch.io
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+    steps:
+      - name: Check whether to publish
+        id: gate
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "No BUTLER_API_KEY secret set; skipping itch.io publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Game Off voting starts Dec 1, 2026 13:37 PST; after that only commits tagged [itch-fix] publish.
+          if [ "$(date -u +%s)" -ge "$(date -u -d '2026-12-01T21:37:00Z' +%s)" ] && [[ "$COMMIT_MSG" != *"[itch-fix]"* ]]; then
+            echo "Jam voting period: skipping. Add [itch-fix] to the commit message to publish a critical fix."
+            echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.publish == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.gate.outputs.publish == 'true'
+        run: npm ci && npm run build
+      - name: Push build with butler
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler-bin && chmod +x butler-bin/butler
+          ./butler-bin/butler push dist izzygld/shift-tab:html5 --userversion "${GITHUB_SHA::7}"
