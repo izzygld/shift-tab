@@ -1,8 +1,10 @@
 # Shift+Tab
 
+![Shift+Tab: a game about web accessibility. Glowing tiles show accessibility icons for mobility, vision, hearing, cognition and captions above a laptop with the accessibility symbol.](docs/media/banner.jpg)
+
 [![Accessibility and keyboard tests](https://github.com/izzygld/shift-tab/actions/workflows/deploy.yml/badge.svg)](https://github.com/izzygld/shift-tab/actions/workflows/deploy.yml)
 
-**Navigate the web the way millions of people do every day. Then fix it.**
+**Navigate the web the way millions of people do every day. Then fix it.** ▶️ [Play in your browser](https://izzygld.github.io/shift-tab/)
 
 ![Playing a level: the screen reader view flags a link and a button with no accessible name, a wrong fix is applied and the reviewer explains why, then the right fixes pass every check and the pull request is merged.](docs/media/demo.gif)
 
@@ -57,7 +59,7 @@ Full proposal: [docs/SPEC.md](docs/SPEC.md).
 
 ## AI disclosure
 
-AI coding assistants (GitHub Copilot) helped write the code, tests, level pages and first drafts of the issue text and feedback. Every level and all copy were reviewed and edited by the author. Paid review of the issue text by disabled testers is planned before the jam deadline. The visual design started from a Figma Make prototype.
+AI coding assistants (GitHub Copilot) helped write the code, tests, level pages and first drafts of the issue text and feedback. Every level and all copy were reviewed and edited by the author. Paid review of the issue text by disabled testers is planned before the jam deadline. The visual design started from a Figma Make prototype, and the banner and cover art were generated with AI.
 
 ## License
 
