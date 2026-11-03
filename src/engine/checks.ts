@@ -16,7 +16,11 @@ const AXE_LABELS: Record<string, string> = {
   'link-name': 'Links have accessible names (WCAG 2.4.4, 4.1.2)',
   'aria-hidden-focus': 'Hidden elements are not focusable (WCAG 4.1.2)',
   'color-contrast': 'Text has enough color contrast (WCAG 1.4.3)',
+  'aria-dialog-name': 'Pop-ups have accessible names (WCAG 4.1.2)',
+  label: 'Form fields have labels (WCAG 1.3.1, 4.1.2)',
 };
+
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export async function runChecks(frame: HTMLIFrameElement, level: Level): Promise<CheckResult[]> {
   const doc = frame.contentDocument;
@@ -24,6 +28,8 @@ export async function runChecks(frame: HTMLIFrameElement, level: Level): Promise
   if (!doc || !win) return [];
 
   const results: CheckResult[] = [];
+  // Some checks move focus inside the page; hand it back so the player isn't pulled into the iframe.
+  const previousFocus = document.activeElement as HTMLElement | null;
 
   if (level.checks.axe.length) {
     if (!win.axe) {
@@ -49,7 +55,16 @@ export async function runChecks(frame: HTMLIFrameElement, level: Level): Promise
     if (check) results.push(check(doc));
   }
 
+  if (previousFocus && previousFocus !== frame) previousFocus.focus();
   return results;
+}
+
+const pass = (id: string, label: string, detail: string): CheckResult => ({ id, label, passed: true, detail });
+const fail = (id: string, label: string, detail: string): CheckResult => ({ id, label, passed: false, detail });
+
+function describeNode(el: Element): string {
+  const text = (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 32);
+  return `<${el.tagName.toLowerCase()}> "${text}"`;
 }
 
 const CUSTOM_CHECKS: Record<string, (doc: Document) => CheckResult> = {
@@ -85,6 +100,27 @@ const CUSTOM_CHECKS: Record<string, (doc: Document) => CheckResult> = {
       };
     }
     return { id: 'focus-indicator', label, passed: true, detail: `Focus outline is ${restored.width}px with ${ratio.toFixed(1)}:1 contrast.` };
+  },
+
+  'native-controls': (doc) => {
+    const id = 'native-controls';
+    const label = 'Clickable things are real buttons or links (WCAG 2.1.1, 4.1.2)';
+    const bad = Array.from(doc.querySelectorAll('[onclick]')).filter((el) => !el.matches('button, a[href], input, select, textarea, summary'));
+    if (!bad.length) return pass(id, label, 'Every clickable element is a native control that works with a keyboard.');
+    return fail(id, label, `${bad.length} clickable element${bad.length === 1 ? '' : 's'} won't work fully with a keyboard: ${bad.map(describeNode).join(', ')}.`);
+  },
+
+  'modal-escape': (doc) => {
+    const id = 'modal-escape';
+    const label = 'Pop-up can be closed from the keyboard (WCAG 2.1.2)';
+    const modal = doc.querySelector<HTMLElement>('[role="dialog"]');
+    const win = doc.defaultView as (Window & typeof globalThis & { openModal?: () => void }) | null;
+    if (!modal || modal.hidden || !win) return pass(id, label, 'No open pop-up.');
+    const target = modal.querySelector<HTMLElement>(FOCUSABLE) ?? modal;
+    target.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const closed = modal.hidden;
+    win.openModal?.();
+    return closed ? pass(id, label, 'Escape closes the pop-up.') : fail(id, label, 'Escape does nothing, and Tab keeps focus inside the pop-up. There is no way out.');
   },
 };
 

@@ -1,0 +1,94 @@
+{
+  "id": "03-div-soup",
+  "order": 3,
+  "title": "Div Soup",
+  "wcag": [
+    { "id": "2.1.1", "name": "Keyboard", "url": "https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html" },
+    { "id": "4.1.2", "name": "Name, Role, Value", "url": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" }
+  ],
+  "modes": ["keyboard", "screen-reader"],
+  "issue": {
+    "number": 103,
+    "title": "My switch skips right past Register",
+    "reporter": { "name": "Priya S.", "uses": "Switch access" },
+    "body": [
+      "I use a switch that steps through everything on a page I can interact with. On the event page it goes from the logo straight down to \"Contact us\" at the bottom.",
+      "It never stops on \"Register for Friday\" or the dinner menu link, so I can't register or check the food options."
+    ]
+  },
+  "task": {
+    "instruction": "Switch access moves through the same elements as the Tab key. Select \"Move focus into the page\", then Tab down to \"Contact us\" in the footer and press Enter. Did you stop on Register on the way?",
+    "goalSelector": "[data-goal]",
+    "afterReproduce": "Register and the menu link were skipped completely. They look clickable but they're a div and a span. Make them real controls."
+  },
+  "fixes": [
+    {
+      "id": "register",
+      "title": "The \"Register for Friday\" element",
+      "find": "<div class=\"cta\" onclick=\"register()\">Register for Friday</div>",
+      "options": [
+        {
+          "id": "tabindex",
+          "label": "Add tabindex=\"0\" to the div",
+          "replace": "<div class=\"cta\" tabindex=\"0\" onclick=\"register()\">Register for Friday</div>",
+          "correct": false,
+          "feedback": "It can receive focus now, but Enter and Space do nothing, and a screen reader doesn't announce it as a button."
+        },
+        {
+          "id": "role-button",
+          "label": "Add role=\"button\" and tabindex=\"0\" to the div",
+          "replace": "<div class=\"cta\" role=\"button\" tabindex=\"0\" onclick=\"register()\">Register for Friday</div>",
+          "correct": false,
+          "feedback": "Now it's announced as a button, but it still ignores Enter and Space. You would have to write that keyboard handling yourself. A native button does it for free."
+        },
+        {
+          "id": "native-button",
+          "label": "Change it to a <button>",
+          "replace": "<button type=\"button\" class=\"cta\" onclick=\"register()\">Register for Friday</button>",
+          "correct": true,
+          "feedback": "A native button is focusable, works with Enter and Space, and is announced as a button. All without extra code."
+        }
+      ]
+    },
+    {
+      "id": "menu",
+      "title": "The \"See the dinner menu\" element",
+      "find": "<span class=\"link\" onclick=\"showMenu()\">See the dinner menu</span>",
+      "options": [
+        {
+          "id": "anchor-no-href",
+          "label": "Change it to <a> without an href",
+          "replace": "<a class=\"link\" onclick=\"showMenu()\">See the dinner menu</a>",
+          "correct": false,
+          "feedback": "An <a> without an href isn't a link at all to the browser. It still can't be reached with Tab."
+        },
+        {
+          "id": "anchor-href",
+          "label": "Change it to <a href=\"#menu\">",
+          "replace": "<a class=\"link\" href=\"#menu\" onclick=\"showMenu()\">See the dinner menu</a>",
+          "correct": false,
+          "feedback": "The checks pass and it works, but it's announced as a link even though it doesn't go anywhere. It shows and hides content, which is a button's job."
+        },
+        {
+          "id": "disclosure-button",
+          "label": "Change it to a <button> with aria-expanded",
+          "replace": "<button type=\"button\" class=\"link\" aria-expanded=\"false\" aria-controls=\"menu\" onclick=\"showMenu(this)\">See the dinner menu</button>",
+          "correct": true,
+          "feedback": "A button that shows and hides content, and aria-expanded tells screen reader users whether the menu is open."
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["color-contrast"],
+    "custom": ["native-controls"]
+  },
+  "merged": {
+    "reply": "My switch stops on Register now, and I can open the menu. Registered, and the soup sounds great.",
+    "learn": [
+      "If it does something when clicked, use a <button>. If it goes somewhere, use <a href>.",
+      "tabindex and role only change how something is announced; they don't add keyboard behavior.",
+      "Switch, voice and keyboard users all depend on real, focusable controls."
+    ]
+  }
+}

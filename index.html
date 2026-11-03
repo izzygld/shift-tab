@@ -8,45 +8,60 @@
       name="description"
       content="Navigate the web the way millions of people do every day, then fix it. An open source puzzle game about web accessibility."
     />
+    <meta name="theme-color" content="#0f172a" />
   </head>
   <body>
     <a class="skip-link" href="#level-heading">Skip to the level</a>
 
     <header class="topbar">
       <div class="brand">
-        <p class="logo" aria-hidden="true"><kbd>⇧</kbd><kbd>Tab</kbd></p>
+        <p class="logo" aria-hidden="true">
+          <kbd class="key key-wide">⇧ Shift</kbd><span class="plus">+</span><kbd class="key">Tab</kbd>
+        </p>
         <div>
           <h1>Shift+Tab</h1>
           <p class="tagline">Navigate the web the way millions of people do every day. Then fix it.</p>
         </div>
       </div>
-      <nav aria-label="Levels">
-        <ol id="level-list" class="level-list"></ol>
-      </nav>
+      <div class="topbar-tools">
+        <p id="progress" class="progress"></p>
+        <button id="sound-toggle" type="button" class="ghost" aria-pressed="true">Sound effects</button>
+      </div>
     </header>
 
-    <main id="main" class="layout">
-      <section id="issue" class="panel" aria-labelledby="issue-heading"></section>
+    <nav class="levels-nav" aria-label="Levels">
+      <ol id="level-list" class="level-list"></ol>
+    </nav>
 
-      <section class="panel stage" aria-labelledby="level-heading">
+    <main id="main" class="layout">
+      <section id="issue" class="card issue" aria-labelledby="issue-heading"></section>
+
+      <section class="card stage" aria-labelledby="level-heading">
         <div class="stage-header">
           <h2 id="level-heading">Commons website</h2>
           <div id="mode-switch" class="mode-switch" role="group" aria-label="Browsing mode"></div>
         </div>
         <p id="mode-hint" class="hint"></p>
-        <button id="enter-page" type="button" class="secondary">Move focus into the page</button>
-        <div class="frame-wrap">
+        <div class="stage-actions">
+          <button id="enter-page" type="button" class="primary">Move focus into the page</button>
+          <p class="hint">Stuck inside the page? Press <kbd class="key key-sm">Esc</kbd> twice.</p>
+        </div>
+        <div class="browser">
+          <div class="browser-bar" aria-hidden="true">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span class="url" id="frame-url">commons.example.org</span>
+          </div>
           <iframe id="frame" title="Commons website (level page)"></iframe>
         </div>
       </section>
 
-      <section id="readout" class="panel" aria-labelledby="readout-heading">
+      <section id="readout" class="card readout" aria-labelledby="readout-heading">
         <h2 id="readout-heading">Screen reader view</h2>
         <p class="hint" id="readout-hint"></p>
         <div class="readout-controls">
           <label><input type="checkbox" id="speech-toggle" /> Speak announcements</label>
           <label>
-            Speech rate
+            Rate
             <select id="speech-rate">
               <option value="1">1x</option>
               <option value="1.5">1.5x</option>
@@ -58,12 +73,12 @@
         <ol id="readout-log" class="readout-log"></ol>
       </section>
 
-      <section id="pr" class="panel pr" aria-labelledby="pr-heading"></section>
+      <section id="pr" class="card pr" aria-labelledby="pr-heading"></section>
     </main>
 
     <footer class="footer">
       <p>
-        Open source (MIT code, CC BY 4.0 content).
+        Free and open source. Code MIT, content CC BY 4.0.
         <a href="https://github.com/izzygld/shift-tab">Source on GitHub</a> ·
         <a href="https://github.com/izzygld/shift-tab/issues/new?template=accessibility-barrier.yml">Report an accessibility barrier in this game</a>
       </p>

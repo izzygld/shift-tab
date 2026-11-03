@@ -1,0 +1,95 @@
+{
+  "id": "04-no-way-out",
+  "order": 4,
+  "title": "No Way Out",
+  "wcag": [
+    { "id": "2.1.2", "name": "No Keyboard Trap", "url": "https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html" },
+    { "id": "4.1.2", "name": "Name, Role, Value", "url": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" }
+  ],
+  "modes": ["keyboard", "screen-reader"],
+  "issue": {
+    "number": 104,
+    "title": "Stuck in the updates pop-up",
+    "reporter": { "name": "Jordan K.", "uses": "Keyboard only" },
+    "body": [
+      "A \"Get Friday updates\" pop-up opens on the event page. When I press Tab, focus just loops between the email field and Subscribe.",
+      "The × doesn't take focus and Escape doesn't close it. I had to reload the page, and the pop-up came right back. I never got to Register."
+    ]
+  },
+  "task": {
+    "instruction": "Select \"Move focus into the page\" and try to reach \"Register for Friday\" behind the pop-up. When you're stuck, press Escape.",
+    "goalSelector": "[data-goal]",
+    "goalKey": "Escape",
+    "afterReproduce": "Focus is trapped and Escape does nothing. Keeping focus inside an open pop-up is fine; there just has to be a way out."
+  },
+  "fixes": [
+    {
+      "id": "close",
+      "title": "The × close control",
+      "find": "<span class=\"close\" onclick=\"closeModal()\">×</span>",
+      "options": [
+        {
+          "id": "title",
+          "label": "Add title=\"Close\" to the span",
+          "replace": "<span class=\"close\" title=\"Close\" onclick=\"closeModal()\">×</span>",
+          "correct": false,
+          "feedback": "A tooltip only shows on mouse hover. The span still can't be reached with Tab."
+        },
+        {
+          "id": "tabindex",
+          "label": "Add tabindex=\"0\" to the span",
+          "replace": "<span class=\"close\" tabindex=\"0\" onclick=\"closeModal()\">×</span>",
+          "correct": false,
+          "feedback": "Focus can land on it now, but Enter does nothing, and a screen reader reads it as \"times\" or \"multiplication sign\"."
+        },
+        {
+          "id": "button",
+          "label": "Change it to a <button> with aria-label=\"Close\"",
+          "replace": "<button type=\"button\" class=\"close\" aria-label=\"Close\" onclick=\"closeModal()\">×</button>",
+          "correct": true,
+          "feedback": "A real button, reachable with Tab and announced as \"Close, button\"."
+        }
+      ]
+    },
+    {
+      "id": "escape",
+      "title": "Script: keyboard handling for the pop-up",
+      "find": "document.addEventListener('keydown', trapFocus);",
+      "options": [
+        {
+          "id": "remove-trap",
+          "label": "Remove the focus trap",
+          "replace": "// focus trap removed",
+          "correct": false,
+          "feedback": "Now focus wanders behind a pop-up that's still covering the page, and Escape still does nothing. The trap was fine; the missing exit is the problem."
+        },
+        {
+          "id": "timer",
+          "label": "Close the pop-up automatically after 10 seconds",
+          "replace": "document.addEventListener('keydown', trapFocus);\n      setTimeout(closeModal, 10000);",
+          "correct": false,
+          "feedback": "A timer takes control away from people, and 10 seconds isn't enough for everyone to read and decide (WCAG 2.2.1)."
+        },
+        {
+          "id": "escape",
+          "label": "Keep the trap and close the pop-up on Escape",
+          "replace": "document.addEventListener('keydown', trapFocus);\n      document.addEventListener('keydown', (e) => {\n        if (e.key === 'Escape' && !modal.hidden) closeModal();\n      });",
+          "correct": true,
+          "feedback": "Focus stays in the pop-up while it's open, Escape closes it, and focus returns to the button that opened it."
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["button-name", "aria-dialog-name", "label"],
+    "custom": ["native-controls", "modal-escape"]
+  },
+  "merged": {
+    "reply": "Escape closes it now, and the × is reachable too. I'm registered. Thanks for not making me reload five times again.",
+    "learn": [
+      "Keeping focus inside an open dialog is good practice, as long as there's always a way out.",
+      "Escape should close a dialog, and focus should return to whatever opened it.",
+      "Close buttons need to be real buttons with a name, not a symbol in a span."
+    ]
+  }
+}

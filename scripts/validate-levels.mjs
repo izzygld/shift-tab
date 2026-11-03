@@ -7,7 +7,7 @@ const errors = [];
 const seenIds = new Set();
 const seenOrders = new Set();
 const MODES = new Set(['keyboard', 'screen-reader']);
-const CUSTOM_CHECKS = new Set(['focus-indicator']);
+const CUSTOM_CHECKS = new Set(['focus-indicator', 'native-controls', 'modal-escape']);
 
 for (const dir of readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory())) {
   const where = `levels/${dir.name}`;
@@ -40,7 +40,8 @@ for (const dir of readdirSync(root, { withFileTypes: true }).filter((d) => d.isD
   }
   if (!/<html[^>]*\blang=/.test(page)) fail('page.html needs <html lang="…">');
   if (!level.modes?.length || level.modes.some((m) => !MODES.has(m))) fail(`modes must be from: ${[...MODES].join(', ')}`);
-  if (level.task && !page.includes(level.task.goalSelector.replace(/^\[|\]$/g, ''))) fail(`goalSelector ${level.task.goalSelector} not found in page.html`);
+  if (level.task && !level.task.goalSelector && !level.task.goalKey) fail('task needs goalSelector and/or goalKey');
+  if (level.task?.goalSelector && !page.includes(level.task.goalSelector.replace(/^\[|\]$/g, ''))) fail(`goalSelector ${level.task.goalSelector} not found in page.html`);
   for (const c of level.checks?.custom ?? []) if (!CUSTOM_CHECKS.has(c)) fail(`unknown custom check "${c}"`);
 
   for (const group of level.fixes ?? []) {

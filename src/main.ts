@@ -1,7 +1,12 @@
+import '@fontsource/atkinson-hyperlegible-next/400.css';
+import '@fontsource/atkinson-hyperlegible-next/700.css';
+import '@fontsource/atkinson-hyperlegible-mono/400.css';
+import '@fontsource/atkinson-hyperlegible-mono/700.css';
 import './styles.css';
 import { applyFixes, levels } from './engine/levels';
 import { runChecks, type CheckResult } from './engine/checks';
 import { describeElement } from './engine/screenReader';
+import { sound } from './engine/sound';
 import type { FixGroup, Level, Mode } from './types';
 
 const STORAGE_KEY = 'shift-tab:progress';
@@ -21,6 +26,9 @@ const ui = {
   speechRate: $<HTMLSelectElement>('speech-rate'),
   pr: $('pr'),
   announcer: $('announcer'),
+  progress: $('progress'),
+  soundToggle: $<HTMLButtonElement>('sound-toggle'),
+  url: $('frame-url'),
 };
 
 interface State {
@@ -30,10 +38,11 @@ interface State {
   selected: Record<string, string>;
   applied: Record<string, string>;
   checks: CheckResult[];
+  checkSoundPending: boolean;
   merged: boolean;
 }
 
-const state: State = { index: 0, mode: 'keyboard', reproduced: false, selected: {}, applied: {}, checks: [], merged: false };
+const state: State = { index: 0, mode: 'keyboard', reproduced: false, selected: {}, applied: {}, checks: [], checkSoundPending: false, merged: false };
 const completed = new Set<string>(loadProgress());
 
 function loadProgress(): string[] {
@@ -82,30 +91,51 @@ function loadLevel(index: number) {
 }
 
 function renderFrame() {
+  ui.url.textContent = `commons.example.org/friday · ${level().title.toLowerCase().replace(/\s+/g, '-')}`;
   ui.frame.srcdoc = applyFixes(level(), state.applied);
 }
+
+let lastEscape = 0;
 
 ui.frame.addEventListener('load', async () => {
   const doc = ui.frame.contentDocument;
   if (!doc) return;
+  const { task } = level();
   doc.addEventListener('click', (e) => {
     const target = e.target as Element;
     if (target.closest('a')) e.preventDefault();
-    if (target.closest(level().task.goalSelector)) onGoalReached();
+    if (task.goalSelector && target.closest(task.goalSelector)) onGoalReached();
+  });
+  doc.addEventListener('keydown', (e) => {
+    if (!e.isTrusted) return;
+    if (task.goalKey && e.key === task.goalKey) onGoalReached(true);
+    if (e.key !== 'Escape') return;
+    // Double Escape always returns to the game, so a keyboard trap in a level never traps the player.
+    const now = performance.now();
+    if (now - lastEscape < 600) {
+      ui.enterPage.focus();
+      announce('Back in the game.');
+    }
+    lastEscape = now;
   });
   doc.addEventListener('submit', (e) => e.preventDefault());
   doc.addEventListener('focusin', (e) => onFrameFocus(e.target as Element));
 
   state.checks = await runChecks(ui.frame, level());
+  if (state.checkSoundPending) {
+    state.checkSoundPending = false;
+    if (state.checks.every((c) => c.passed)) sound.pass();
+    else sound.fail();
+  }
   renderPR();
 });
 
-function onGoalReached() {
+function onGoalReached(leaveFrame = false) {
   if (state.reproduced) return;
   state.reproduced = true;
   const fromPanel = ui.pr.contains(document.activeElement);
   renderIssue();
-  renderPR(fromPanel ? 'suggestions' : undefined);
+  renderPR(fromPanel || leaveFrame ? 'suggestions' : undefined);
   announce(level().task.afterReproduce);
 }
 
@@ -143,8 +173,13 @@ ui.enterPage.addEventListener('click', () => {
 });
 
 function onFrameFocus(el: Element) {
-  if (state.mode !== 'screen-reader') return;
+  if (state.mode !== 'screen-reader') {
+    sound.focus();
+    return;
+  }
   const a = describeElement(el);
+  if (a.unnamed || a.hidden) sound.barrier();
+  else sound.focus();
   const item = h('li', { class: a.unnamed || a.hidden ? 'warn' : '' }, a.text, a.unnamed && ' ', a.unnamed && h('span', { class: 'tag' }, 'no accessible name'));
   ui.readoutLog.prepend(item);
   while (ui.readoutLog.children.length > 25) ui.readoutLog.lastElementChild?.remove();
@@ -161,22 +196,45 @@ function onFrameFocus(el: Element) {
 
 function renderIssue() {
   const l = level();
+  const initials = l.issue.reporter.name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .join('')
+    .replace(/[^A-Z]/gi, '')
+    .slice(0, 2);
   ui.issue.replaceChildren(
-    h('p', { class: 'eyebrow' }, `Issue #${l.issue.number} · Level ${state.index + 1} of ${levels.length}`),
+    h('p', { class: 'issue-meta' }, h('span', { class: state.merged ? 'state closed' : 'state open' }, state.merged ? 'Closed' : 'Open'), ` Issue #${l.issue.number}`),
     h('h2', { id: 'issue-heading' }, l.issue.title),
-    h('p', { class: 'reporter' }, `Opened by ${l.issue.reporter.name} · Uses: ${l.issue.reporter.uses}`),
-    ...l.issue.body.map((p) => h('p', {}, p)),
+    h(
+      'div',
+      { class: 'reporter' },
+      h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials),
+      h('p', {}, h('strong', {}, l.issue.reporter.name), h('br'), h('span', { class: 'uses' }, `Uses: ${l.issue.reporter.uses}`)),
+    ),
+    h('div', { class: 'issue-body' }, ...l.issue.body.map((p) => h('p', {}, p))),
+    h('ul', { class: 'labels', 'aria-label': 'Labels' }, h('li', {}, 'accessibility'), ...l.wcag.map((w) => h('li', {}, `WCAG ${w.id}`))),
     h('h3', {}, 'Your task'),
     h('p', { class: state.reproduced ? 'task done' : 'task' }, state.reproduced ? `Reproduced. ${l.task.afterReproduce}` : l.task.instruction),
-    h('h3', {}, 'Success criteria'),
-    h('ul', {}, ...l.wcag.map((w) => h('li', {}, h('a', { href: w.url, target: '_blank', rel: 'noopener' }, `${w.id} ${w.name}`)))),
+    h('h3', {}, 'Learn more'),
+    h('ul', { class: 'wcag-links' }, ...l.wcag.map((w) => h('li', {}, h('a', { href: w.url, target: '_blank', rel: 'noopener' }, `${w.id} ${w.name}`, h('span', { class: 'visually-hidden' }, ' (opens in a new tab)'))))),
   );
 }
 
 function renderLevelList() {
+  ui.progress.replaceChildren(
+    h('span', {}, `${completed.size} of ${levels.length} issues fixed`),
+    h('span', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `width: ${(completed.size / levels.length) * 100}%` })),
+  );
   ui.levelList.replaceChildren(
     ...levels.map((l, i) => {
-      const btn = h('button', { type: 'button', 'aria-current': i === state.index ? 'step' : false }, `${i + 1}. ${l.title}`, completed.has(l.id) && h('span', { class: 'done' }, ' (done)'));
+      const btn = h(
+        'button',
+        { type: 'button', 'aria-current': i === state.index ? 'step' : false },
+        h('span', { class: 'step-key', 'aria-hidden': 'true' }, completed.has(l.id) ? '✓' : String(i + 1)),
+        h('span', { class: 'visually-hidden' }, `Level ${i + 1}: `),
+        l.title,
+        completed.has(l.id) && h('span', { class: 'visually-hidden' }, ' (fixed)'),
+      );
       btn.addEventListener('click', () => {
         loadLevel(i);
         focusIssue();
@@ -204,28 +262,34 @@ function renderPR(focusKey?: string) {
 
 function buildPR(): Node[] {
   const l = level();
-  const heading = h('h2', { id: 'pr-heading', tabindex: '-1', 'data-key': 'pr-heading' }, `Pull request: Fix #${l.issue.number}`);
+  const heading = h(
+    'h2',
+    { id: 'pr-heading', tabindex: '-1', 'data-key': 'pr-heading' },
+    `Fix #${l.issue.number}: ${l.issue.title}`,
+  );
+  const branch = h('p', { class: 'branch' }, h('code', {}, `fix/issue-${l.issue.number}`), ' → ', h('code', {}, 'main'));
 
   if (state.merged) {
-    const next = h('button', { type: 'button' }, state.index + 1 < levels.length ? 'Next issue' : 'Back to level 1');
+    const next = h('button', { type: 'button', class: 'primary' }, state.index + 1 < levels.length ? 'Next issue →' : 'Back to level 1');
     next.addEventListener('click', () => {
       loadLevel((state.index + 1) % levels.length);
       focusIssue();
     });
     return [
-      heading,
       h('p', { class: 'merged-badge' }, 'Merged'),
-      h('blockquote', {}, h('p', {}, l.merged.reply), h('footer', {}, `${l.issue.reporter.name}`)),
+      heading,
+      branch,
+      h('blockquote', {}, h('p', {}, l.merged.reply), h('footer', {}, l.issue.reporter.name)),
       h('h3', {}, 'What you learned'),
-      h('ul', {}, ...l.merged.learn.map((x) => h('li', {}, x))),
+      h('ul', { class: 'learned' }, ...l.merged.learn.map((x) => h('li', {}, x))),
       next,
     ];
   }
 
   if (!state.reproduced) {
     const skip = h('button', { type: 'button', class: 'secondary' }, 'Skip reproducing and go to the fix');
-    skip.addEventListener('click', onGoalReached);
-    return [heading, h('p', {}, 'Reproduce the issue first so you know what the reporter ran into.'), skip, renderChecks()];
+    skip.addEventListener('click', () => onGoalReached());
+    return [heading, branch, h('p', {}, 'Reproduce the issue first so you know what the reporter ran into.'), skip, renderChecks()];
   }
 
   const allCorrect = l.fixes.every((g) => g.options.find((o) => o.id === state.applied[g.id])?.correct);
@@ -240,12 +304,14 @@ function buildPR(): Node[] {
     state.merged = true;
     completed.add(l.id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...completed]));
+    sound.merge();
     renderLevelList();
+    renderIssue();
     renderPR('pr-heading');
     announce(`Merged. ${l.issue.reporter.name} replied: ${l.merged.reply}`);
   });
 
-  return [heading, h('h3', { tabindex: '-1', 'data-key': 'suggestions' }, 'Suggested changes'), ...l.fixes.map(renderFixGroup), renderChecks(), merge];
+  return [heading, branch, h('h3', { tabindex: '-1', 'data-key': 'suggestions' }, 'Suggested changes'), ...l.fixes.map(renderFixGroup), renderChecks(), merge];
 }
 
 function renderFixGroup(group: FixGroup): HTMLElement {
@@ -260,7 +326,7 @@ function renderFixGroup(group: FixGroup): HTMLElement {
     return h('div', { class: 'option' }, radio, h('label', { for: id }, o.label), renderDiff(group.find, o.replace));
   });
 
-  const apply = h('button', { type: 'button', 'data-key': `apply-${group.id}` }, 'Apply suggestion');
+  const apply = h('button', { type: 'button', class: 'primary', 'data-key': `apply-${group.id}` }, 'Apply suggestion');
   apply.addEventListener('click', () => {
     const chosen = state.selected[group.id];
     if (!chosen) {
@@ -268,6 +334,7 @@ function renderFixGroup(group: FixGroup): HTMLElement {
       return;
     }
     state.applied[group.id] = chosen;
+    state.checkSoundPending = true;
     const option = group.options.find((o) => o.id === chosen)!;
     renderFrame();
     announce(`Applied. Running checks. ${option.feedback}`);
@@ -296,18 +363,34 @@ function renderDiff(removed: string, added: string): HTMLElement {
 
 function renderChecks(): HTMLElement {
   if (!state.checks.length) return h('p', { class: 'hint' }, 'Running checks…');
+  const passed = state.checks.filter((c) => c.passed).length;
   return h(
     'div',
     { class: 'checks' },
-    h('h3', {}, 'Checks'),
+    h('h3', {}, `Checks: ${passed} of ${state.checks.length} passing`),
     h(
       'ul',
       {},
       ...state.checks.map((c) =>
-        h('li', { class: c.passed ? 'pass' : 'fail' }, h('strong', {}, c.passed ? 'Passed: ' : 'Failed: '), c.label, h('br'), h('span', { class: 'detail' }, c.detail)),
+        h(
+          'li',
+          { class: c.passed ? 'pass' : 'fail' },
+          h('span', { class: 'icon', 'aria-hidden': 'true' }, c.passed ? '✓' : '✕'),
+          h('span', {}, h('strong', {}, c.passed ? 'Passed: ' : 'Failed: '), c.label, h('br'), h('span', { class: 'detail' }, c.detail)),
+        ),
       ),
     ),
   );
 }
 
+function renderSoundToggle() {
+  ui.soundToggle.setAttribute('aria-pressed', String(sound.enabled));
+}
+ui.soundToggle.addEventListener('click', () => {
+  sound.setEnabled(!sound.enabled);
+  renderSoundToggle();
+  announce(sound.enabled ? 'Sound effects on.' : 'Sound effects off.');
+});
+
+renderSoundToggle();
 loadLevel(0);

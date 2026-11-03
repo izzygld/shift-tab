@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Friday Community Night · Commons</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; color: #1f2328; background: #ffffff; line-height: 1.5; }
+      header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+      .site-name { font-weight: 700; color: #1f2328; }
+      main { padding: 1.5rem; max-width: 40rem; }
+      button, input { font: inherit; }
+      .cta { padding: 0.6rem 1.1rem; border: 0; border-radius: 6px; color: #fff; background: #1a7f37; cursor: pointer; }
+      .secondary { padding: 0.5rem 1rem; border: 1px solid #0a3069; border-radius: 6px; color: #0a3069; background: #fff; cursor: pointer; }
+      .backdrop { position: fixed; inset: 0; background: rgb(15 23 42 / 0.55); }
+      .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(26rem, 90vw); padding: 1.5rem; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgb(0 0 0 / 0.3); }
+      .modal h2 { margin-top: 0; }
+      .modal label { display: block; font-weight: 600; }
+      .modal input { width: 100%; margin: 0.25rem 0 1rem; padding: 0.5rem; border: 1px solid #59636e; border-radius: 6px; }
+      .close { position: absolute; top: 0.5rem; right: 0.75rem; font-size: 1.5rem; line-height: 1; color: #59636e; background: none; border: 0; cursor: pointer; }
+      [hidden] { display: none !important; }
+      :focus-visible { outline: 3px solid #1a5fb4; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <span class="close" onclick="closeModal()">×</span>
+      <h2 id="modal-title">Get Friday updates</h2>
+      <p>We'll email you the schedule and any changes.</p>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" />
+      <button type="button" class="cta" onclick="closeModal()">Subscribe</button>
+    </div>
+    <div class="backdrop" id="backdrop"></div>
+
+    <header>
+      <a class="site-name" href="#home">Commons Community Center</a>
+      <button type="button" class="secondary" id="updates-btn" onclick="openModal()">Get updates</button>
+    </header>
+    <main>
+      <h1>Friday Community Night</h1>
+      <p>Dinner, games, and a book swap. Registration closes Thursday night.</p>
+      <button type="button" class="cta" data-goal>Register for Friday</button>
+    </main>
+
+    <script>
+      const modal = document.getElementById('modal');
+      const backdrop = document.getElementById('backdrop');
+      const focusables = () => Array.from(modal.querySelectorAll('a[href], button, input, [tabindex]:not([tabindex="-1"])'));
+
+      function openModal() {
+        modal.hidden = false;
+        backdrop.hidden = false;
+      }
+      function closeModal() {
+        const hadFocus = modal.contains(document.activeElement);
+        modal.hidden = true;
+        backdrop.hidden = true;
+        if (hadFocus) document.getElementById('updates-btn').focus();
+      }
+      function trapFocus(e) {
+        if (modal.hidden || e.key !== 'Tab') return;
+        const items = focusables();
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (!modal.contains(document.activeElement)) {
+          e.preventDefault();
+          first.focus();
+        } else if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+      document.addEventListener('keydown', trapFocus);
+    </script>
+  </body>
+</html>

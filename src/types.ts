@@ -35,7 +35,8 @@ export interface LevelData {
   };
   task: {
     instruction: string;
-    goalSelector: string;
+    goalSelector?: string;
+    goalKey?: string;
     afterReproduce: string;
   };
   fixes: FixGroup[];

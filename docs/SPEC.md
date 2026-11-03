@@ -113,8 +113,8 @@ Why: it mirrors code review and CI checks that every developer knows, beginners 
 |---|---|---|---|---|
 | 1 | Find Your Way | Focus outline removed | 2.4.7, 1.4.11 | Built |
 | 2 | Nameless Buttons | Unnamed icon button, logo link with no alt text | 1.1.1, 2.4.4, 4.1.2 | Built |
-| 3 | Div Soup | Clickable `<div>`s that keyboards can't reach | 2.1.1, 4.1.2 | Planned |
-| 4 | No Way Out | Modal traps keyboard focus | 2.1.2 | Planned |
+| 3 | Div Soup | Clickable `<div>`s that keyboards can't reach | 2.1.1, 4.1.2 | Built |
+| 4 | No Way Out | Modal traps keyboard focus | 2.1.2 | Built |
 | 5 | Form Fail | Placeholder used as label, errors shown only in red | 1.3.1, 3.3.1, 1.4.1 | Planned |
 | 6 | Small Targets | Tiny tap targets, drag-only controls | 2.5.8, 2.5.7 | Planned |
 | 7 | Friday Night (final) | Donation checkout combining earlier barriers, plus a timeout | 2.2.1 + earlier | Planned |
@@ -140,10 +140,13 @@ Stretch: reflow (1.4.10), contrast (1.4.3), headings and landmarks (1.3.1 / 2.4.
 - Content as data: `levels/<id>/level.json` + `page.html`, checked by `scripts/validate-levels.mjs` in CI.
 - Privacy: no tracking, no accounts; progress is saved in local storage only.
 
-## 12. Audio direction
+## 12. Audio and visual direction
 
-- Short audio cues for focus moving, a barrier being hit, and checks passing, each with a visual equivalent.
+- Synthesized cues (Web Audio, no files) for focus moving, a barrier being hit, checks passing or failing, and merging. Each has a visual equivalent, and there's a sound toggle.
 - Optional speech in the screen reader view with adjustable rate (up to 3x), showing respectfully that experienced users often listen fast.
+- Visual identity: keycap motif, bold outlined cards, warm paper background with a dot grid, dark "console" for the screen reader view.
+- Type: Atkinson Hyperlegible Next and Mono, from the Braille Institute, designed for low-vision readers. Self-hosted, with no third-party font requests.
+- Escape hatch: pressing Escape twice inside any level returns focus to the game, so a keyboard trap level never traps the player.
 
 ## 13. Partners and outreach (later)
 
@@ -163,8 +166,8 @@ Stretch: reflow (1.4.10), contrast (1.4.3), headings and landmarks (1.3.1 / 2.4.
 
 | Dates | Milestone |
 |---|---|
-| Nov 3–7 | Spec, repo, Pages, engine, levels 1–2 ✅ |
-| Nov 8–14 | Levels 3–4, sound cues, polish shell |
+| Nov 3–7 | Spec, repo, Pages, engine, levels 1–4, sound cues, visual design ✅ |
+| Nov 8–14 | Title screen and ending, Figma design pass, polish |
 | Nov 15–21 | "Write your own change" editor, levels 5–6 |
 | Nov 22–26 | Level 7, playtests, accessibility audit of the game |
 | Nov 27–Dec 1 | Polish, itch.io page, final README, AI disclosure, **submit** |

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Friday Community Night · Commons</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; color: #1f2328; background: #ffffff; line-height: 1.5; }
+      header, footer { padding: 1rem 1.5rem; background: #f6f8fa; }
+      header { border-bottom: 1px solid #d1d9e0; }
+      footer { border-top: 1px solid #d1d9e0; margin-top: 2rem; }
+      .site-name { font-weight: 700; font-size: 1.125rem; color: #1f2328; }
+      main { padding: 1.5rem; max-width: 40rem; }
+      .link { color: #0a3069; text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+      .cta { display: inline-block; margin-top: 1rem; padding: 0.75rem 1.25rem; border: 0; border-radius: 6px; font: inherit; color: #fff; background: #1a7f37; cursor: pointer; }
+      #menu { padding: 0.75rem 1rem; background: #f6f8fa; border-radius: 6px; }
+      #status { font-weight: 600; color: #1a7f37; }
+      :focus-visible { outline: 3px solid #1a5fb4; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="site-name" href="#home">Commons Community Center</a>
+    </header>
+    <main>
+      <h1>Friday Community Night</h1>
+      <p>Dinner, games, and a book swap. Registration helps us plan food for everyone.</p>
+      <p><span class="link" onclick="showMenu()">See the dinner menu</span></p>
+      <div id="menu" hidden>Vegetable soup, rice and beans, fruit salad. Vegan and gluten-free options available.</div>
+      <div class="cta" onclick="register()">Register for Friday</div>
+      <p id="status" role="status"></p>
+    </main>
+    <footer>
+      <a href="#contact" data-goal>Contact us</a>
+    </footer>
+    <script>
+      function register() {
+        document.getElementById('status').textContent = "You're registered for Friday Community Night.";
+      }
+      function showMenu(control) {
+        const menu = document.getElementById('menu');
+        menu.hidden = !menu.hidden;
+        if (control) control.setAttribute('aria-expanded', String(!menu.hidden));
+      }
+    </script>
+  </body>
+</html>
