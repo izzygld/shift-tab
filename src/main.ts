@@ -85,14 +85,14 @@ function loadProgress(): string[] {
 
 const level = (): Level => levels[state.index];
 
-type Child = Node | string | null | undefined | false;
+type Child = Node | string | null | undefined | false | Child[];
 function h(tag: string, attrs: Record<string, string | boolean> = {}, ...children: Child[]): HTMLElement {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (v === false) continue;
     el.setAttribute(k, v === true ? '' : v);
   }
-  for (const c of children) if (c) el.append(c);
+  for (const c of children.flat(Infinity as 1)) if (c) el.append(c as Node | string);
   return el;
 }
 
@@ -150,6 +150,7 @@ function loadLevel(index: number) {
   state.checks = [];
   state.merged = false;
   state.readout = [];
+  lastEscape = 0;
   ui.gameHeading.textContent = `Level ${index + 1} of ${levels.length}: ${level().title}`;
   renderLevelList();
   renderIssue();
@@ -167,10 +168,13 @@ function renderFrame() {
 
 let lastEscape = 0;
 let checking = false;
+// Fast level switches can fire `load` twice for one document; wire each document once.
+const wiredDocs = new WeakSet<Document>();
 
 ui.frame.addEventListener('load', async () => {
   const doc = ui.frame.contentDocument;
-  if (!doc) return;
+  if (!doc || wiredDocs.has(doc)) return;
+  wiredDocs.add(doc);
   const { task } = level();
   doc.addEventListener('click', (e) => {
     const target = e.target as Element;
@@ -179,7 +183,11 @@ ui.frame.addEventListener('load', async () => {
   });
   doc.addEventListener('keydown', (e) => {
     if (!e.isTrusted) return;
-    if (task.goalKey && e.key === task.goalKey) onGoalReached(true);
+    if (task.goalKey && e.key === task.goalKey && !state.reproduced) {
+      onGoalReached(true);
+      lastEscape = 0;
+      return;
+    }
     if (e.key !== 'Escape') return;
     // Double Escape always returns to the game, so a keyboard trap in a level never traps the player.
     const now = performance.now();
@@ -357,14 +365,11 @@ function renderLevelList() {
       const current = i === state.index;
       const btn = h(
         'button',
-        {
-          type: 'button',
-          class: current ? 'current' : fixed ? 'fixed' : '',
-          'aria-current': current ? 'step' : false,
-          'aria-label': `Level ${i + 1}: ${l.title}${fixed ? ', fixed' : ''}${current ? ', current' : ''}`,
-        },
-        h('span', { class: 'level-key' }, fixed && !current ? icon('check', 16) : String(i + 1)),
+        { type: 'button', class: current ? 'current' : fixed ? 'fixed' : '', 'aria-current': current ? 'step' : false },
+        h('span', { class: 'sr-only' }, 'Level '),
+        h('span', { class: 'level-key' }, fixed && !current ? [icon('check', 16), h('span', { class: 'sr-only' }, String(i + 1))] : String(i + 1)),
         h('span', { class: 'level-title' }, l.title),
+        fixed && h('span', { class: 'sr-only' }, ', fixed'),
       );
       btn.addEventListener('click', () => {
         loadLevel(i);
@@ -378,7 +383,9 @@ function renderLevelList() {
 function focusIssue() {
   const heading = $('issue-heading');
   heading.setAttribute('tabindex', '-1');
-  heading.focus();
+  // Bring the level stepper and issue card to the top, not wherever the previous level left the scroll.
+  ui.levelsNav.scrollIntoView({ block: 'start' });
+  heading.focus({ preventScroll: true });
 }
 
 // ---------- Pull request panel ----------

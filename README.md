@@ -1,6 +1,10 @@
 # Shift+Tab
 
+[![Accessibility and keyboard tests](https://github.com/izzygld/shift-tab/actions/workflows/deploy.yml/badge.svg)](https://github.com/izzygld/shift-tab/actions/workflows/deploy.yml)
+
 **Navigate the web the way millions of people do every day. Then fix it.**
+
+![Playing a level: the screen reader view flags a link and a button with no accessible name, a wrong fix is applied and the reviewer explains why, then the right fixes pass every check and the pull request is merged.](docs/media/demo.gif)
 
 Shift+Tab is a free, open source puzzle game about web accessibility, built for [GitHub Game Off 2026](https://itch.io/jam/game-off-2026) (theme: **SHIFT**).
 
@@ -25,11 +29,19 @@ npm install
 npm run dev       # local dev server
 npm run validate  # check all levels
 npm run build     # production build in dist/
+npm test          # accessibility, keyboard and mobile tests (Playwright + axe)
 ```
 
 ## Accessibility of the game itself
 
-The game aims for WCAG 2.2 AA or better: fully keyboard operable, screen reader friendly, no flashing, reduced-motion aware, and no timed failure. If anything gets in your way, please [report an accessibility barrier](https://github.com/izzygld/shift-tab/issues/new?template=accessibility-barrier.yml).
+A game about accessibility has to pass its own test. Every push runs a [Playwright](https://playwright.dev) + [axe-core](https://github.com/dequelabs/axe-core) suite in CI, and nothing deploys unless it passes:
+
+- **axe scans** of the title screen, every level (before reproducing, alternate modes, fixing, merged) and both ending screens, against WCAG 2.0/2.1/2.2 A and AA plus best practices.
+- **A full keyboard-only playthrough** of all levels: real Tab, arrow keys, Enter and Space, with a visible focus indicator checked at every step, focus restored after every re-render, and the level 4 focus trap escaped with Escape.
+- **Mobile** (iPhone Safari and Android Chrome emulation): no horizontal scrolling on any screen, and moving between issues returns to the top.
+- **Reflow at 320px** (WCAG 1.4.10) and **reduced motion**.
+
+The level pages inside the game are broken on purpose, so they're excluded from the scans. Automated tests can't catch everything, so manual testing with VoiceOver and NVDA is part of the [release checklist](docs/SPEC.md#19-release-checklist). If anything gets in your way, please [report an accessibility barrier](https://github.com/izzygld/shift-tab/issues/new?template=accessibility-barrier.yml).
 
 ## Contributing
 
@@ -45,7 +57,7 @@ Full proposal: [docs/SPEC.md](docs/SPEC.md).
 
 ## AI disclosure
 
-AI coding assistants helped with scaffolding and boilerplate code. Accessibility content, issue text, and level design are human-written and are being reviewed by disabled consultants before release.
+AI coding assistants (GitHub Copilot) helped write the code, tests, level pages and first drafts of the issue text and feedback. Every level and all copy were reviewed and edited by the author. Paid review of the issue text by disabled testers is planned before the jam deadline. The visual design started from a Figma Make prototype.
 
 ## License
 

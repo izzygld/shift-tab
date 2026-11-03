@@ -13,9 +13,9 @@ The game does **not** try to simulate what it's like to be disabled. It teaches 
 
 ## 2. Problem
 
-- About 1 in 6 people worldwide live with a significant disability (WHO).
-- Most home pages still have detectable accessibility failures. The WebAIM Million report regularly finds about 95%. *(Check the latest figure before publishing.)*
-- In 2026 this is a legal requirement as well as best practice: the ADA Title II web rule has compliance deadlines starting April 2026, and the European Accessibility Act has been enforced since June 2025.
+- About 1 in 6 people worldwide (an estimated 1.3 billion) experience significant disability ([WHO fact sheet](https://www.who.int/news-room/fact-sheets/detail/disability-and-health)).
+- 95.9% of the top 1,000,000 home pages had detectable WCAG 2 failures in February 2026, up from 94.8% in 2025, with an average of 56.1 errors per page ([WebAIM Million 2026](https://webaim.org/projects/million/)).
+- Legal requirements are arriving too. The US Department of Justice's ADA Title II rule (published April 24, 2024) requires state and local government websites and apps to meet WCAG 2.1 AA. An interim final rule on April 20, 2026 extended compliance to **April 26, 2027** for entities serving 50,000+ people and **April 26, 2028** for smaller entities and special districts ([ADA.gov fact sheet](https://www.ada.gov/resources/2024-03-08-web-rule/)). In the EU, the European Accessibility Act (Directive 2019/882) has applied to covered products and services since **June 28, 2025** ([European Commission](https://commission.europa.eu/strategy-and-policy/policies/justice-and-fundamental-rights/disability/union-equality-strategy-rights-persons-disabilities-2021-2030/european-accessibility-act_en)).
 - Most developers learn accessibility from long checklists. Few have ever used a site with only a keyboard or a screen reader.
 
 ## 3. Goals and non-goals
@@ -195,3 +195,18 @@ Stretch: reflow (1.4.10), contrast (1.4.3), headings and landmarks (1.3.1 / 2.4.
 ## 18. Open questions
 
 - Which partner to contact first (deferred).
+
+## 19. Release checklist
+
+Automated (runs in CI on every push; `npm test` locally):
+- [x] axe: title, every level state, merged, both endings (WCAG 2.0/2.1/2.2 A/AA + best practices)
+- [x] Keyboard-only playthrough of all levels with visible focus at every step
+- [x] Mobile (iPhone Safari, Android Chrome emulation), 320px reflow, reduced motion
+
+Manual, before each release (a human does this; automated tools can't):
+- [ ] **VoiceOver + Safari (macOS):** Cmd+F5 to start. Play level 1 and level 2 to merge using VO+arrows and Tab. Confirm: headings list (VO+U) shows one h1 per screen; mode buttons announce "pressed"; "Apply suggestion" announces the reviewer note and check results via the live region; merging moves focus to the merged headline; the level bar announces "Level 2, Nameless Buttons, current".
+- [ ] **NVDA + Firefox or Chrome (Windows):** same flow in browse and focus modes. Confirm the radio groups announce their legend ("The logo image inside the home link, grouping") and arrow keys move between options.
+- [ ] **iOS VoiceOver on a real iPhone:** swipe through the title screen and start a level; double-tap works on every control.
+- [ ] **200% and 400% browser zoom** on desktop: nothing cut off, no horizontal scroll at 400%.
+- [ ] **Windows High Contrast / forced colors:** focus rings, pressed mode buttons and current level remain visible.
+- [ ] **Paid review** of issue text and feedback by 2–3 disabled testers (see outreach plan).

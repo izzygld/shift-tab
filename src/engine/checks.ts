@@ -56,7 +56,8 @@ export async function runChecks(frame: HTMLIFrameElement, level: Level): Promise
     if (check) results.push(check(doc));
   }
 
-  if (previousFocus && previousFocus !== frame) previousFocus.focus();
+  // Only undo focus moves caused by the checks themselves, not ones the player made meanwhile.
+  if (previousFocus && previousFocus !== frame && document.activeElement === frame) previousFocus.focus();
   return results;
 }
 

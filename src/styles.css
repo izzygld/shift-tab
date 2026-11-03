@@ -894,6 +894,29 @@ button.fixed .level-key {
 .stage-action {
   width: 100%;
 }
+.skip-inline {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.skip-inline:focus {
+  position: static;
+  display: block;
+  width: auto;
+  height: auto;
+  margin-top: 10px;
+  padding: 8px 12px;
+  clip: auto;
+  white-space: normal;
+  text-align: center;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font-weight: 700;
+}
 .escape-hint {
   margin: 10px 0 15px;
   color: var(--muted);
@@ -1216,6 +1239,8 @@ button.fixed .level-key {
   min-height: 28px;
 }
 .option-top input {
+  position: relative;
+  z-index: 1;
   flex: none;
   width: 18px;
   height: 18px;
@@ -1815,10 +1840,24 @@ button.fixed .level-key {
   }
   .level-stepper--titles {
     padding-inline: 12px;
+    overflow: visible;
   }
   .level-stepper--titles ol {
-    justify-content: start;
-    min-width: 820px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 12px 6px;
+    min-width: 0;
+  }
+  .level-stepper--titles li {
+    min-width: 0;
+  }
+  .level-stepper--titles .step-line {
+    display: none;
+  }
+  .level-title {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
   }
   .game-main {
     width: calc(100% - 24px);
@@ -1904,6 +1943,20 @@ button.fixed .level-key {
   }
 }
 
+@media (width <= 480px) {
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .topbar .progress-wrap {
+    order: 3;
+    width: 100%;
+  }
+  .topbar .progress-wrap > div:first-child > span:last-child {
+    display: inline;
+  }
+}
+
 @media (width <= 380px) {
   .hero-copy h1 {
     font-size: 35px;
@@ -1913,12 +1966,6 @@ button.fixed .level-key {
   }
   .hero-copy {
     padding-inline: 17px;
-  }
-  .topbar-title {
-    display: none;
-  }
-  .topbar .progress-wrap {
-    width: 92px;
   }
 }
 
