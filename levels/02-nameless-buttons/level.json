@@ -1,0 +1,95 @@
+{
+  "id": "02-nameless-buttons",
+  "order": 2,
+  "title": "Nameless Buttons",
+  "wcag": [
+    { "id": "1.1.1", "name": "Non-text Content", "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html" },
+    { "id": "2.4.4", "name": "Link Purpose (In Context)", "url": "https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html" },
+    { "id": "4.1.2", "name": "Name, Role, Value", "url": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html" }
+  ],
+  "modes": ["screen-reader", "keyboard"],
+  "issue": {
+    "number": 102,
+    "title": "Screen reader just says \"button\" on the event page",
+    "reporter": { "name": "Marcus T.", "uses": "Screen reader (NVDA)" },
+    "body": [
+      "I use a screen reader. On the Friday Community Night page, the logo link at the top is announced only as \"link\", so I don't know where it goes.",
+      "Under the event there are three round buttons. Two of them have names, but the first one is just \"button\". I wanted to donate and had to guess."
+    ]
+  },
+  "task": {
+    "instruction": "Select \"Move focus into the page\" and Tab through it while watching the screen reader view. Find the donate button and press Enter.",
+    "goalSelector": "[data-goal]",
+    "afterReproduce": "Without names, the logo link and the donate button are guesswork. Give them accessible names."
+  },
+  "fixes": [
+    {
+      "id": "logo",
+      "title": "Header: the logo image inside the home link",
+      "find": "<img class=\"logo-img\"",
+      "options": [
+        {
+          "id": "alt-logo",
+          "label": "Add alt=\"logo\"",
+          "replace": "<img class=\"logo-img\" alt=\"logo\"",
+          "correct": false,
+          "feedback": "The checks pass, but \"logo\" describes the picture, not where the link goes. For an image that is the only content of a link, the alt text should be the link's purpose."
+        },
+        {
+          "id": "alt-empty",
+          "label": "Add alt=\"\" to mark the image as decorative",
+          "replace": "<img class=\"logo-img\" alt=\"\"",
+          "correct": false,
+          "feedback": "Empty alt is right for decorative images, but this image is the only content of the link, so the link now has no name at all."
+        },
+        {
+          "id": "alt-purpose",
+          "label": "Add alt=\"Commons Community Center home\"",
+          "replace": "<img class=\"logo-img\" alt=\"Commons Community Center home\"",
+          "correct": true,
+          "feedback": "The link now says who it belongs to and where it goes."
+        }
+      ]
+    },
+    {
+      "id": "donate",
+      "title": "Toolbar: the first icon button",
+      "find": "<button class=\"icon-btn\" type=\"button\" data-goal>",
+      "options": [
+        {
+          "id": "data-label",
+          "label": "Add data-label=\"Donate\"",
+          "replace": "<button class=\"icon-btn\" type=\"button\" data-goal data-label=\"Donate\">",
+          "correct": false,
+          "feedback": "Assistive technology doesn't read data- attributes, so the button is still unnamed."
+        },
+        {
+          "id": "aria-hidden",
+          "label": "Add aria-hidden=\"true\" so the unlabeled button stops being announced",
+          "replace": "<button class=\"icon-btn\" type=\"button\" data-goal aria-hidden=\"true\">",
+          "correct": false,
+          "feedback": "Now the button is still focusable but announces nothing, which is worse. Hiding a control doesn't fix it."
+        },
+        {
+          "id": "aria-label",
+          "label": "Add aria-label=\"Donate\"",
+          "replace": "<button class=\"icon-btn\" type=\"button\" data-goal aria-label=\"Donate\">",
+          "correct": true,
+          "feedback": "The button is now announced as \"Donate, button\". A visible text label would help even more people, including voice control users."
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["image-alt", "link-name", "button-name", "aria-hidden-focus"],
+    "custom": []
+  },
+  "merged": {
+    "reply": "Perfect, the logo says where it goes and the first button says \"Donate\". Just made my donation for Friday.",
+    "learn": [
+      "Every image needs a text alternative. When the image is the only content of a link, describe where the link goes.",
+      "Icon-only buttons need an accessible name, for example aria-label.",
+      "Never use aria-hidden on something that can receive focus."
+    ]
+  }
+}

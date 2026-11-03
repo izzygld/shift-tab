@@ -1,0 +1,24 @@
+name: Accessibility barrier in the game
+description: Something in Shift+Tab itself is hard or impossible to use with your setup.
+title: "[A11y] "
+labels: ["accessibility"]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you. A game about accessibility has to be accessible itself, so these reports are our top priority.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What were you trying to do, and what got in the way?
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Your setup (optional)
+      description: For example, NVDA 2026.3 with Firefox, VoiceOver with Safari, keyboard only, 400% zoom, switch access.
+  - type: input
+    id: level
+    attributes:
+      label: Level (optional)

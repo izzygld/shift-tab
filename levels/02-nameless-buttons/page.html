@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Friday Community Night · Commons</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; color: #1f2328; background: #ffffff; line-height: 1.5; }
+      header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+      main { padding: 1.5rem; max-width: 40rem; }
+      .card { border: 1px solid #d1d9e0; border-radius: 8px; padding: 1rem 1.25rem; }
+      .card h1 { margin-top: 0; font-size: 1.5rem; }
+      .toolbar { display: flex; gap: 0.75rem; margin-top: 1rem; }
+      .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border: 1px solid #0a3069; border-radius: 50%; background: #fff; color: #0a3069; cursor: pointer; }
+      .icon-btn svg { width: 1.5rem; height: 1.5rem; }
+      :focus-visible { outline: 3px solid #1a5fb4; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="#home"><img class="logo-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='32'%3E%3Ctext x='0' y='24' font-family='sans-serif' font-size='22' font-weight='700' fill='%231f2328'%3ECommons%3C/text%3E%3C/svg%3E" width="180" height="32"></a>
+    </header>
+    <main>
+      <article class="card">
+        <h1>Friday Community Night</h1>
+        <p>Dinner, games, and a book swap. Every donation covers meals for neighbors who need them.</p>
+        <div class="toolbar">
+          <button class="icon-btn" type="button" data-goal>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 21s-7-4.4-9.5-8.6C.7 9.2 2.5 5 6.3 5c2 0 3.3 1.1 3.9 2.1h3.6C14.4 6.1 15.7 5 17.7 5c3.8 0 5.6 4.2 3.8 7.4C19 16.6 12 21 12 21z"/></svg>
+          </button>
+          <button class="icon-btn" type="button" aria-label="Share event">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.4a3 3 0 0 0 0-1.6l6.7-3.4A3 3 0 1 0 15 7l-6.7 3.4a3 3 0 1 0 0 3.2L15 17a3 3 0 1 0 3-1z"/></svg>
+          </button>
+          <button class="icon-btn" type="button" aria-label="Add to calendar">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm-2 8h14v10H5z"/></svg>
+          </button>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>

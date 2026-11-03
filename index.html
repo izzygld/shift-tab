@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shift+Tab: a game about web accessibility</title>
+    <meta
+      name="description"
+      content="Navigate the web the way millions of people do every day, then fix it. An open source puzzle game about web accessibility."
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#level-heading">Skip to the level</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <p class="logo" aria-hidden="true"><kbd>⇧</kbd><kbd>Tab</kbd></p>
+        <div>
+          <h1>Shift+Tab</h1>
+          <p class="tagline">Navigate the web the way millions of people do every day. Then fix it.</p>
+        </div>
+      </div>
+      <nav aria-label="Levels">
+        <ol id="level-list" class="level-list"></ol>
+      </nav>
+    </header>
+
+    <main id="main" class="layout">
+      <section id="issue" class="panel" aria-labelledby="issue-heading"></section>
+
+      <section class="panel stage" aria-labelledby="level-heading">
+        <div class="stage-header">
+          <h2 id="level-heading">Commons website</h2>
+          <div id="mode-switch" class="mode-switch" role="group" aria-label="Browsing mode"></div>
+        </div>
+        <p id="mode-hint" class="hint"></p>
+        <button id="enter-page" type="button" class="secondary">Move focus into the page</button>
+        <div class="frame-wrap">
+          <iframe id="frame" title="Commons website (level page)"></iframe>
+        </div>
+      </section>
+
+      <section id="readout" class="panel" aria-labelledby="readout-heading">
+        <h2 id="readout-heading">Screen reader view</h2>
+        <p class="hint" id="readout-hint"></p>
+        <div class="readout-controls">
+          <label><input type="checkbox" id="speech-toggle" /> Speak announcements</label>
+          <label>
+            Speech rate
+            <select id="speech-rate">
+              <option value="1">1x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+              <option value="3">3x</option>
+            </select>
+          </label>
+        </div>
+        <ol id="readout-log" class="readout-log"></ol>
+      </section>
+
+      <section id="pr" class="panel pr" aria-labelledby="pr-heading"></section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Open source (MIT code, CC BY 4.0 content).
+        <a href="https://github.com/izzygld/shift-tab">Source on GitHub</a> ·
+        <a href="https://github.com/izzygld/shift-tab/issues/new?template=accessibility-barrier.yml">Report an accessibility barrier in this game</a>
+      </p>
+    </footer>
+
+    <div id="announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "id": "01-find-your-way",
+  "order": 1,
+  "title": "Find Your Way",
+  "wcag": [
+    { "id": "2.4.7", "name": "Focus Visible", "url": "https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html" },
+    { "id": "1.4.11", "name": "Non-text Contrast", "url": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html" }
+  ],
+  "modes": ["keyboard"],
+  "issue": {
+    "number": 101,
+    "title": "Can't see where I am when I use Tab",
+    "reporter": { "name": "Dana R.", "uses": "Keyboard only" },
+    "body": [
+      "I use a keyboard instead of a mouse. On the homepage, when I press Tab, there's no outline at all, so I can't tell which link or button I'm on.",
+      "I tried to sign up to volunteer for Friday, pressed Enter on what I guessed was the right button, and ended up somewhere else. Could you bring back the focus indicator?"
+    ]
+  },
+  "task": {
+    "instruction": "Select \"Move focus into the page\", then use Tab and Shift+Tab to reach the Volunteer button and press Enter.",
+    "goalSelector": "[data-goal]",
+    "afterReproduce": "You found it, but could you see which element had focus along the way? Now fix the stylesheet."
+  },
+  "fixes": [
+    {
+      "id": "focus-style",
+      "title": "Stylesheet: the global :focus rule",
+      "find": "*:focus { outline: none; }",
+      "options": [
+        {
+          "id": "hover-outline",
+          "label": "Keep the rule and add a hover outline instead",
+          "replace": "*:focus { outline: none; }\n      a:hover, .cta:hover { outline: 3px solid #1a5fb4; }",
+          "correct": false,
+          "feedback": "Hover only responds to a mouse pointer. Keyboard users still get no indicator."
+        },
+        {
+          "id": "subtle-outline",
+          "label": "Use a subtle light gray outline so it doesn't affect the design",
+          "replace": "*:focus { outline: 1px dotted #e8e8e8; }",
+          "correct": false,
+          "feedback": "There is an outline now, but at 1px and barely above 1:1 contrast against white, most people won't see it. Aim for at least 2px and 3:1."
+        },
+        {
+          "id": "focus-visible",
+          "label": "Replace it with a clear :focus-visible outline",
+          "replace": ":focus-visible { outline: 3px solid #1a5fb4; outline-offset: 2px; }",
+          "correct": true,
+          "feedback": "Clear 3px outline with strong contrast. :focus-visible shows it for keyboard users without changing what mouse users see."
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "axe": ["color-contrast"],
+    "custom": ["focus-indicator"]
+  },
+  "merged": {
+    "reply": "That did it. I can see exactly where I am now, and I'm signed up for Friday. Thank you!",
+    "learn": [
+      "Never remove the focus outline without replacing it.",
+      "Use :focus-visible to show a strong indicator to keyboard users.",
+      "Focus indicators need visible size and at least 3:1 contrast."
+    ]
+  }
+}
