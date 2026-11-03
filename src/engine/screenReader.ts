@@ -2,6 +2,7 @@ import { computeAccessibleDescription, computeAccessibleName, getRole } from 'do
 
 export interface Announcement {
   text: string;
+  kind: string;
   unnamed: boolean;
   hidden: boolean;
 }
@@ -12,7 +13,6 @@ const ROLE_LABELS: Record<string, string> = {
   combobox: 'combo box',
   checkbox: 'check box',
   radio: 'radio button',
-  slider: 'slider',
   navigation: 'navigation landmark',
   main: 'main landmark',
 };
@@ -26,12 +26,14 @@ export function describeElement(el: Element): Announcement {
   const name = computeAccessibleName(el, opts).trim();
   const role = getRole(el) ?? el.tagName.toLowerCase();
   const hidden = el.closest('[aria-hidden="true"]') !== null;
+  const label = ROLE_LABELS[role] ?? role;
+  const kind = label.charAt(0).toUpperCase() + label.slice(1);
 
   if (hidden) {
-    return { text: '(nothing announced: this element is hidden from assistive technology but still focusable)', unnamed: false, hidden };
+    return { text: '(nothing announced: this element is hidden from assistive technology but still focusable)', kind, unnamed: false, hidden };
   }
 
-  const parts = [name, ROLE_LABELS[role] ?? role];
+  const parts = [name, label];
   if (role === 'heading') parts.push(`level ${el.getAttribute('aria-level') ?? el.tagName.slice(1)}`);
   const expanded = el.getAttribute('aria-expanded');
   if (expanded) parts.push(expanded === 'true' ? 'expanded' : 'collapsed');
@@ -44,5 +46,5 @@ export function describeElement(el: Element): Announcement {
   const description = computeAccessibleDescription(el, opts).trim();
   if (description) parts.push(description);
 
-  return { text: parts.filter(Boolean).join(', '), unnamed: !name && NEEDS_NAME.has(role), hidden };
+  return { text: parts.filter(Boolean).join(', '), kind, unnamed: !name && NEEDS_NAME.has(role), hidden };
 }

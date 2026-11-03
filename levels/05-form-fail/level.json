@@ -85,6 +85,7 @@
     "custom": ["visible-label", "error-identification"]
   },
   "merged": {
+    "headline": "The form says what it needs.",
     "reply": "Now the field says \"Full name\" and when I miss something it tells me exactly what. Signed up for the setup shift!",
     "learn": [
       "Every field needs a visible label linked with <label for>. A placeholder is not a label.",

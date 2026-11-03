@@ -85,6 +85,7 @@
     "custom": ["native-controls", "modal-escape"]
   },
   "merged": {
+    "headline": "The pop-up has a way out.",
     "reply": "Escape closes it now, and the × is reachable too. I'm registered. Thanks for not making me reload five times again.",
     "learn": [
       "Keeping focus inside an open dialog is good practice, as long as there's always a way out.",

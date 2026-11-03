@@ -84,6 +84,7 @@
     "custom": ["no-drag-only"]
   },
   "merged": {
+    "headline": "Every target is easy to hit.",
     "reply": "Three guests, 7:00 PM, first try. I didn't have to fight the page once.",
     "learn": [
       "Targets need to be at least 24 by 24 CSS pixels, or have enough space around them.",

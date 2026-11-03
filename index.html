@@ -14,82 +14,89 @@
     <a class="skip-link" id="skip-link" href="#title-heading">Skip to main content</a>
 
     <header class="topbar">
-      <div class="brand">
-        <p class="logo" aria-hidden="true">
-          <kbd class="key key-wide">⇧ Shift</kbd><span class="plus">+</span><kbd class="key">Tab</kbd>
-        </p>
-        <div>
-          <h1>Shift+Tab</h1>
-          <p class="tagline">Navigate the web the way millions of people do every day. Then fix it.</p>
+      <div class="topbar-brand">
+        <div class="logo logo--compact" role="img" aria-label="Shift plus Tab">
+          <span class="keycap"><span aria-hidden="true">⇧</span> Shift</span><span class="logo-plus" aria-hidden="true">+</span><span class="keycap">Tab</span>
         </div>
+        <button id="home-btn" class="topbar-title" type="button" hidden>Title screen</button>
       </div>
-      <div class="topbar-tools">
-        <p id="progress" class="progress"></p>
-        <button id="sound-toggle" type="button" class="ghost" aria-pressed="true">Sound effects</button>
-        <button id="home-btn" type="button" class="ghost" hidden>Title screen</button>
-      </div>
+      <div class="progress-wrap" id="progress"></div>
+      <button id="sound-toggle" class="toggle-row toggle-row--dark" type="button" role="switch" aria-checked="true">
+        <span class="toggle" aria-hidden="true"><span></span></span><span>Sound effects</span>
+      </button>
     </header>
 
-    <main id="title-screen" class="screen title-screen" aria-labelledby="title-heading"></main>
+    <main id="title-screen" class="title-main title-main--revised" aria-labelledby="title-heading"></main>
 
-    <nav class="levels-nav" id="levels-nav" aria-label="Levels" hidden>
-      <ol id="level-list" class="level-list"></ol>
+    <nav class="level-stepper level-stepper--titles" id="levels-nav" aria-label="Issue progress" hidden>
+      <ol id="level-list"></ol>
     </nav>
 
-    <main id="main" class="layout" hidden>
-      <section id="issue" class="card issue" aria-labelledby="issue-heading"></section>
+    <main id="main" class="game-main" aria-labelledby="game-heading" hidden>
+      <h1 id="game-heading" class="sr-only">Shift+Tab game</h1>
+      <div class="workspace">
+        <aside id="issue" class="issue-card panel" aria-labelledby="issue-heading"></aside>
 
-      <section class="card stage" aria-labelledby="level-heading">
-        <div class="stage-header">
-          <h2 id="level-heading">Commons website</h2>
-          <div id="mode-switch" class="mode-switch" role="group" aria-label="Browsing mode"></div>
-        </div>
-        <p id="mode-hint" class="hint"></p>
-        <div class="stage-actions">
-          <button id="enter-page" type="button" class="primary">Move focus into the page</button>
-          <p class="hint">Stuck inside the page? Press <kbd class="key key-sm">Esc</kbd> twice.</p>
-        </div>
-        <div class="browser">
-          <div class="browser-bar" aria-hidden="true">
-            <span class="dots"><i></i><i></i><i></i></span>
-            <span class="url" id="frame-url">commons.example.org</span>
+        <section class="website-stage panel" aria-labelledby="level-heading">
+          <div class="stage-heading">
+            <div>
+              <p class="overline">Test environment</p>
+              <h2 id="level-heading">Commons website</h2>
+            </div>
+            <span class="sandbox-pill">Safe sandbox</span>
           </div>
-          <iframe id="frame" title="Commons website (level page)"></iframe>
-        </div>
-      </section>
+          <div id="mode-switch" class="mode-switch" role="group" aria-label="Testing mode"></div>
+          <button id="enter-page" type="button" class="button button--primary stage-action"></button>
+          <p class="escape-hint"><span id="mode-hint"></span> Stuck inside the page? Press <kbd>Esc</kbd> twice.</p>
+          <div class="browser" id="browser">
+            <div class="browser-bar" aria-hidden="true">
+              <span class="browser-dots"><i></i><i></i><i></i></span>
+              <span class="url" id="frame-url">commons.example.org</span>
+              <span></span>
+            </div>
+            <iframe id="frame" title="Commons website (level page)"></iframe>
+          </div>
+        </section>
 
-      <section id="readout" class="card readout" aria-labelledby="readout-heading">
-        <h2 id="readout-heading">Screen reader view</h2>
-        <p class="hint" id="readout-hint"></p>
-        <div class="readout-controls">
-          <label><input type="checkbox" id="speech-toggle" /> Speak announcements</label>
-          <label>
-            Rate
-            <select id="speech-rate">
-              <option value="1">1x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-              <option value="3">3x</option>
-            </select>
-          </label>
-        </div>
-        <ol id="readout-log" class="readout-log"></ol>
-      </section>
+        <aside id="readout" class="reader-console" aria-labelledby="readout-heading">
+          <div class="console-head">
+            <div>
+              <p class="overline">Live output</p>
+              <h2 id="readout-heading">Screen reader view</h2>
+            </div>
+            <span class="live-dot" id="live-dot"><i></i> Live</span>
+          </div>
+          <p class="console-hint" id="readout-hint"></p>
+          <ol id="readout-log" class="announcement-list"></ol>
+          <div class="console-controls">
+            <label class="checkbox-row"><input type="checkbox" id="speech-toggle" /> <span>Speak announcements</span></label>
+            <label>
+              Rate
+              <select id="speech-rate">
+                <option value="1">1×</option>
+                <option value="1.5">1.5×</option>
+                <option value="2">2×</option>
+                <option value="3">3×</option>
+              </select>
+            </label>
+          </div>
+        </aside>
+      </div>
 
-      <section id="pr" class="card pr" aria-labelledby="pr-heading"></section>
+      <section id="pr" class="pr-panel panel" aria-labelledby="pr-heading"></section>
     </main>
 
-    <main id="ending" class="screen ending" aria-labelledby="ending-heading" hidden></main>
+    <main id="ending" class="ending-screen" aria-labelledby="ending-heading" hidden></main>
 
-    <footer class="footer">
-      <p>
-        Free and open source. Code MIT, content CC BY 4.0.
-        <a href="https://github.com/izzygld/shift-tab">Source on GitHub</a> ·
-        <a href="https://github.com/izzygld/shift-tab/issues/new?template=accessibility-barrier.yml">Report an accessibility barrier in this game</a>
-      </p>
+    <footer class="title-footer">
+      <p>Shift+Tab is free and open source.</p>
+      <span aria-hidden="true">·</span>
+      <a href="https://github.com/izzygld/shift-tab">Source on GitHub</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://github.com/izzygld/shift-tab/issues/new?template=accessibility-barrier.yml">Report an accessibility barrier</a>
     </footer>
 
-    <div id="announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+    <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

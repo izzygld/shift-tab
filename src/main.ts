@@ -7,6 +7,7 @@ import { applyFixes, levels } from './engine/levels';
 import { runChecks, type CheckResult } from './engine/checks';
 import { describeElement } from './engine/screenReader';
 import { sound } from './engine/sound';
+import { icon, type IconName } from './icons';
 import type { FixGroup, Level, Mode } from './types';
 
 const STORAGE_KEY = 'shift-tab:progress';
@@ -19,7 +20,9 @@ const ui = {
   modeSwitch: $('mode-switch'),
   modeHint: $('mode-hint'),
   enterPage: $<HTMLButtonElement>('enter-page'),
+  browser: $('browser'),
   frame: $<HTMLIFrameElement>('frame'),
+  liveDot: $('live-dot'),
   readoutHint: $('readout-hint'),
   readoutLog: $<HTMLOListElement>('readout-log'),
   speechToggle: $<HTMLInputElement>('speech-toggle'),
@@ -31,11 +34,19 @@ const ui = {
   url: $('frame-url'),
   titleScreen: $('title-screen'),
   game: $('main'),
+  gameHeading: $('game-heading'),
   levelsNav: $('levels-nav'),
   ending: $('ending'),
   homeBtn: $<HTMLButtonElement>('home-btn'),
   skipLink: $<HTMLAnchorElement>('skip-link'),
 };
+
+interface Entry {
+  text: string;
+  kind: string;
+  warn: boolean;
+  time: number;
+}
 
 interface State {
   index: number;
@@ -43,12 +54,24 @@ interface State {
   reproduced: boolean;
   selected: Record<string, string>;
   applied: Record<string, string>;
+  lastApplied?: string;
   checks: CheckResult[];
   checkSoundPending: boolean;
   merged: boolean;
+  readout: Entry[];
 }
 
-const state: State = { index: 0, mode: 'keyboard', reproduced: false, selected: {}, applied: {}, checks: [], checkSoundPending: false, merged: false };
+const state: State = {
+  index: 0,
+  mode: 'keyboard',
+  reproduced: false,
+  selected: {},
+  applied: {},
+  checks: [],
+  checkSoundPending: false,
+  merged: false,
+  readout: [],
+};
 const completed = new Set<string>(loadProgress());
 
 function loadProgress(): string[] {
@@ -73,10 +96,47 @@ function h(tag: string, attrs: Record<string, string | boolean> = {}, ...childre
   return el;
 }
 
+const nodes = (parts: Child[]): Node[] => parts.filter((p): p is Node => p instanceof Node);
+
 function announce(message: string) {
   ui.announcer.textContent = '';
   setTimeout(() => (ui.announcer.textContent = message), 50);
 }
+
+const external = (href: string, ...label: Child[]) =>
+  h('a', { href, target: '_blank', rel: 'noopener' }, ...label, ' ', icon('external', 14), h('span', { class: 'sr-only' }, '(opens in a new tab)'));
+
+// ---------- Top bar ----------
+
+function renderProgress() {
+  const pct = Math.round((completed.size / levels.length) * 100);
+  ui.progress.replaceChildren(
+    h('div', {}, h('span', {}, h('strong', {}, `${completed.size} of ${levels.length}`), ' issues fixed'), h('span', { 'aria-hidden': 'true' }, `${pct}%`)),
+    h(
+      'div',
+      {
+        class: 'progress-track',
+        role: 'progressbar',
+        'aria-label': 'Issues fixed',
+        'aria-valuemin': '0',
+        'aria-valuemax': String(levels.length),
+        'aria-valuenow': String(completed.size),
+        'aria-valuetext': `${completed.size} of ${levels.length} issues fixed`,
+      },
+      h('span', { style: `width: ${pct}%` }),
+    ),
+  );
+}
+
+function renderSoundToggle() {
+  ui.soundToggle.setAttribute('aria-checked', String(sound.enabled));
+  ui.soundToggle.querySelector('.toggle')?.classList.toggle('is-on', sound.enabled);
+}
+
+ui.soundToggle.addEventListener('click', () => {
+  sound.setEnabled(!sound.enabled);
+  renderSoundToggle();
+});
 
 // ---------- Level lifecycle ----------
 
@@ -86,12 +146,16 @@ function loadLevel(index: number) {
   state.reproduced = false;
   state.selected = {};
   state.applied = {};
+  state.lastApplied = undefined;
   state.checks = [];
   state.merged = false;
-  ui.readoutLog.replaceChildren();
+  state.readout = [];
+  ui.gameHeading.textContent = `Level ${index + 1} of ${levels.length}: ${level().title}`;
   renderLevelList();
   renderIssue();
   renderModes();
+  renderReadout();
+  renderEnterButton();
   renderFrame();
   renderPR();
 }
@@ -126,7 +190,10 @@ ui.frame.addEventListener('load', async () => {
     lastEscape = now;
   });
   doc.addEventListener('submit', (e) => e.preventDefault());
-  doc.addEventListener('focusin', (e) => onFrameFocus(e.target as Element));
+  doc.addEventListener('focusin', (e) => {
+    ui.browser.classList.add('browser--focused');
+    onFrameFocus(e.target as Element);
+  });
   // Levels can signal time-based goals (e.g. a session expiring) with this event.
   doc.addEventListener('shift-tab:goal', () => onGoalReached());
 
@@ -141,47 +208,61 @@ ui.frame.addEventListener('load', async () => {
   renderPR();
 });
 
+document.addEventListener('focusin', (e) => {
+  if (e.target !== ui.frame) ui.browser.classList.remove('browser--focused');
+});
+
 function onGoalReached(leaveFrame = false) {
   if (state.reproduced) return;
   state.reproduced = true;
   const fromPanel = ui.pr.contains(document.activeElement);
   renderIssue();
+  renderEnterButton();
   renderPR(fromPanel || leaveFrame ? 'suggestions' : undefined);
   announce(level().task.afterReproduce);
 }
 
-// ---------- Modes and screen reader view ----------
+// ---------- Modes, stage and screen reader view ----------
+
+const MODE_LABELS: Record<Mode, string> = { keyboard: 'Keyboard only', 'screen-reader': 'Screen reader view', pointer: 'Mouse or touch' };
+const MODE_HINTS: Record<Mode, string> = {
+  keyboard: 'Mouse is off for the page: use Tab, Shift+Tab, Enter and Space.',
+  'screen-reader': 'Each focused element appears in the screen reader view.',
+  pointer: 'Use your mouse, trackpad or touch screen on the page.',
+};
 
 function renderModes() {
-  const labels: Record<Mode, string> = { keyboard: 'Keyboard only', 'screen-reader': 'Screen reader view', pointer: 'Mouse or touch' };
+  const modes = level().modes;
+  ui.modeSwitch.className = `mode-switch mode-switch--${['one', 'two', 'three'][modes.length - 1]}`;
   ui.modeSwitch.replaceChildren(
-    ...level().modes.map((m) => {
-      const btn = h('button', { type: 'button', 'aria-pressed': String(state.mode === m) }, labels[m]);
+    ...modes.map((m) => {
+      const btn = h('button', { type: 'button', class: state.mode === m ? 'active' : '', 'aria-pressed': String(state.mode === m) }, MODE_LABELS[m]);
       btn.addEventListener('click', () => {
         state.mode = m;
         renderModes();
-        announce(`${labels[m]} mode on.`);
+        ui.modeSwitch.querySelector<HTMLElement>('.active')?.focus();
+        announce(`${MODE_LABELS[m]} mode on.`);
       });
       return btn;
     }),
   );
-  const keyboard = state.mode === 'keyboard';
-  ui.frame.classList.toggle('pointer-off', keyboard);
-  const hints: Record<Mode, string> = {
-    keyboard: 'Mouse is turned off for the page. Use Tab, Shift+Tab, Enter and Space.',
-    'screen-reader': 'Each element you focus is announced in the screen reader view. Turn on speech to hear it.',
-    pointer: 'Use your mouse, trackpad or touch screen on the page.',
-  };
-  ui.modeHint.textContent = hints[state.mode];
-  ui.readoutHint.textContent =
-    state.mode === 'screen-reader'
-      ? 'Approximate announcements. Real screen readers vary; try NVDA (Windows) or VoiceOver (Mac) too.'
-      : 'Switch to Screen reader view to see announcements.';
+  ui.frame.classList.toggle('pointer-off', state.mode === 'keyboard');
+  ui.modeHint.textContent = MODE_HINTS[state.mode];
+  const live = state.mode === 'screen-reader';
+  ui.liveDot.hidden = !live;
+  ui.readoutHint.textContent = live
+    ? 'Approximate announcements. Real screen readers vary, so try NVDA or VoiceOver too.'
+    : 'Switch to Screen reader view to see announcements here.';
+}
+
+function renderEnterButton() {
+  ui.enterPage.replaceChildren(
+    ...(state.reproduced ? [icon('check', 18), 'Reproduced · Move focus into the page'] : ['Move focus into the page', icon('arrow', 18)]),
+  );
 }
 
 ui.enterPage.addEventListener('click', () => {
-  const doc = ui.frame.contentDocument;
-  const first = doc?.querySelector<HTMLElement>(FOCUSABLE);
+  const first = ui.frame.contentDocument?.querySelector<HTMLElement>(FOCUSABLE);
   ui.frame.focus();
   first?.focus();
 });
@@ -193,11 +274,12 @@ function onFrameFocus(el: Element) {
     return;
   }
   const a = describeElement(el);
-  if (a.unnamed || a.hidden) sound.barrier();
+  const warn = a.unnamed || a.hidden;
+  if (warn) sound.barrier();
   else sound.focus();
-  const item = h('li', { class: a.unnamed || a.hidden ? 'warn' : '' }, a.text, a.unnamed && ' ', a.unnamed && h('span', { class: 'tag' }, 'no accessible name'));
-  ui.readoutLog.prepend(item);
-  while (ui.readoutLog.children.length > 25) ui.readoutLog.lastElementChild?.remove();
+  state.readout.unshift({ text: a.text, kind: a.kind, warn, time: Date.now() });
+  state.readout.length = Math.min(state.readout.length, 20);
+  renderReadout();
 
   if (ui.speechToggle.checked && 'speechSynthesis' in window) {
     speechSynthesis.cancel();
@@ -207,7 +289,30 @@ function onFrameFocus(el: Element) {
   }
 }
 
-// ---------- Issue panel ----------
+function renderReadout() {
+  const now = Date.now();
+  ui.readoutLog.replaceChildren(
+    ...state.readout.map((entry, i) => {
+      const ago = i === 0 ? 'Now' : `${Math.max(1, Math.round((now - entry.time) / 1000))}s ago`;
+      const cls = ['announcement', i === 0 ? 'newest' : '', entry.warn ? 'warning' : ''].filter(Boolean).join(' ');
+      return h(
+        'li',
+        { class: cls },
+        h('span', { class: 'timestamp' }, ago),
+        entry.warn ? h('strong', {}, icon('x', 14), entry.text, ' ', h('em', {}, '[no accessible name]')) : h('strong', {}, entry.text),
+        h('span', {}, entry.kind, entry.warn && ' · ', entry.warn && h('b', {}, 'Warning')),
+      );
+    }),
+  );
+}
+
+// ---------- Issue card ----------
+
+function usesIcon(uses: string): IconName {
+  if (/screen reader/i.test(uses)) return 'volume';
+  if (/pointer|touch|mouse/i.test(uses)) return 'pointer';
+  return 'keyboard';
+}
 
 function renderIssue() {
   const l = level();
@@ -218,43 +323,54 @@ function renderIssue() {
     .replace(/[^A-Z]/gi, '')
     .slice(0, 2);
   ui.issue.replaceChildren(
-    h('p', { class: 'issue-meta' }, h('span', { class: state.merged ? 'state closed' : 'state open' }, state.merged ? 'Closed' : 'Open'), ` Issue #${l.issue.number}`),
+    h(
+      'div',
+      { class: 'issue-meta' },
+      state.merged ? h('span', { class: 'status closed' }, icon('check', 12), 'Closed') : h('span', { class: 'status open' }, h('span', {}), 'Open'),
+      h('span', {}, `Issue #${l.issue.number}`),
+    ),
     h('h2', { id: 'issue-heading' }, l.issue.title),
     h(
       'div',
       { class: 'reporter' },
       h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials),
-      h('p', {}, h('strong', {}, l.issue.reporter.name), h('br'), h('span', { class: 'uses' }, `Uses: ${l.issue.reporter.uses}`)),
+      h('div', {}, h('strong', {}, l.issue.reporter.name), h('span', {}, 'Community member')),
     ),
-    h('div', { class: 'issue-body' }, ...l.issue.body.map((p) => h('p', {}, p))),
+    h('div', { class: 'uses' }, icon(usesIcon(l.issue.reporter.uses), 16), h('span', {}, 'Uses: ', h('strong', {}, l.issue.reporter.uses))),
+    h('blockquote', {}, ...l.issue.body.map((p) => h('p', {}, p))),
     h('ul', { class: 'labels', 'aria-label': 'Labels' }, h('li', {}, 'accessibility'), ...l.wcag.map((w) => h('li', {}, `WCAG ${w.id}`))),
-    h('h3', {}, 'Your task'),
-    h('p', { class: state.reproduced ? 'task done' : 'task' }, state.reproduced ? `Reproduced. ${l.task.afterReproduce}` : l.task.instruction),
-    h('h3', {}, 'Learn more'),
-    h('ul', { class: 'wcag-links' }, ...l.wcag.map((w) => h('li', {}, h('a', { href: w.url, target: '_blank', rel: 'noopener' }, `${w.id} ${w.name}`, h('span', { class: 'visually-hidden' }, ' (opens in a new tab)'))))),
+    h(
+      'section',
+      { class: state.reproduced ? 'task-callout task-callout--done' : 'task-callout', 'aria-label': 'Your task' },
+      h('p', { class: 'overline' }, state.reproduced ? 'Reproduced' : 'Your task'),
+      h('p', {}, state.reproduced ? l.task.afterReproduce : l.task.instruction),
+    ),
+    h('div', { class: 'learn-links' }, h('h3', {}, 'Learn more'), ...l.wcag.map((w) => external(w.url, `${w.id} ${w.name}`))),
   );
 }
 
 function renderLevelList() {
-  ui.progress.replaceChildren(
-    h('span', {}, `${completed.size} of ${levels.length} issues fixed`),
-    h('span', { class: 'meter', 'aria-hidden': 'true' }, h('span', { style: `width: ${(completed.size / levels.length) * 100}%` })),
-  );
+  renderProgress();
   ui.levelList.replaceChildren(
     ...levels.map((l, i) => {
+      const fixed = completed.has(l.id);
+      const current = i === state.index;
       const btn = h(
         'button',
-        { type: 'button', 'aria-current': i === state.index ? 'step' : false },
-        h('span', { class: 'step-key', 'aria-hidden': 'true' }, completed.has(l.id) ? '✓' : String(i + 1)),
-        h('span', { class: 'visually-hidden' }, `Level ${i + 1}: `),
-        l.title,
-        completed.has(l.id) && h('span', { class: 'visually-hidden' }, ' (fixed)'),
+        {
+          type: 'button',
+          class: current ? 'current' : fixed ? 'fixed' : '',
+          'aria-current': current ? 'step' : false,
+          'aria-label': `Level ${i + 1}: ${l.title}${fixed ? ', fixed' : ''}${current ? ', current' : ''}`,
+        },
+        h('span', { class: 'level-key' }, fixed && !current ? icon('check', 16) : String(i + 1)),
+        h('span', { class: 'level-title' }, l.title),
       );
       btn.addEventListener('click', () => {
         loadLevel(i);
         focusIssue();
       });
-      return h('li', {}, btn);
+      return h('li', {}, btn, i < levels.length - 1 && h('span', { class: 'step-line', 'aria-hidden': 'true' }));
     }),
   );
 }
@@ -275,18 +391,33 @@ function renderPR(focusKey?: string) {
   if (key) ui.pr.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"], #${CSS.escape(key)}`)?.focus();
 }
 
+function prHeading(l: Level): HTMLElement {
+  return h(
+    'div',
+    { class: 'pr-heading' },
+    h(
+      'div',
+      {},
+      h('p', { class: 'pr-kicker' }, icon('pr', 16), 'Pull request ', h('span', {}, `#${l.issue.number + 100}`)),
+      h('h2', { id: 'pr-heading', tabindex: '-1', 'data-key': 'pr-heading' }, `Fix #${l.issue.number}: ${l.issue.title}`),
+    ),
+    h(
+      'p',
+      { class: 'branches' },
+      h('code', {}, `fix/issue-${l.issue.number}`),
+      icon('arrow', 16),
+      h('span', { class: 'sr-only' }, 'into'),
+      h('code', {}, 'main'),
+    ),
+  );
+}
+
 function buildPR(): Node[] {
   const l = level();
-  const heading = h(
-    'h2',
-    { id: 'pr-heading', tabindex: '-1', 'data-key': 'pr-heading' },
-    `Fix #${l.issue.number}: ${l.issue.title}`,
-  );
-  const branch = h('p', { class: 'branch' }, h('code', {}, `fix/issue-${l.issue.number}`), ' → ', h('code', {}, 'main'));
 
   if (state.merged) {
     const last = state.index + 1 >= levels.length;
-    const next = h('button', { type: 'button', class: 'primary' }, last ? 'See your results →' : 'Next issue →');
+    const next = h('button', { type: 'button', class: 'button button--primary button--big next-button' }, last ? 'See your results' : 'Next issue', icon('arrow', 18));
     next.addEventListener('click', () => {
       if (last) {
         showScreen('ending');
@@ -296,26 +427,55 @@ function buildPR(): Node[] {
       focusIssue();
     });
     return [
-      h('p', { class: 'merged-badge' }, 'Merged'),
-      heading,
-      branch,
-      h('blockquote', {}, h('p', {}, l.merged.reply), h('footer', {}, l.issue.reporter.name)),
-      h('h3', {}, 'What you learned'),
-      h('ul', { class: 'learned' }, ...l.merged.learn.map((x) => h('li', {}, x))),
-      next,
+      h(
+        'div',
+        { class: 'merged-panel' },
+        h('p', { class: 'merged-badge' }, icon('merge', 16), 'Merged'),
+        h('p', { class: 'overline' }, `Pull request #${l.issue.number + 100}`),
+        h('h2', { id: 'pr-heading', tabindex: '-1', 'data-key': 'pr-heading' }, l.merged.headline ?? `Fix #${l.issue.number} merged.`),
+        h('figure', { class: 'merged-quote' }, h('blockquote', {}, h('p', {}, `“${l.merged.reply}”`)), h('figcaption', {}, h('cite', {}, `— ${l.issue.reporter.name}`))),
+        h(
+          'div',
+          { class: 'merged-learning' },
+          h('div', {}, h('h3', { class: 'overline' }, 'What you learned'), h('ul', {}, ...l.merged.learn.map((x) => h('li', {}, x)))),
+          h('span', { class: 'wcag-badge' }, `WCAG ${l.wcag.map((w) => w.id).join(' · ')}`),
+        ),
+        next,
+      ),
     ];
   }
 
   if (!state.reproduced) {
-    const skip = h('button', { type: 'button', class: 'secondary' }, 'Skip reproducing and go to the fix');
+    const skip = h('button', { type: 'button', class: 'button button--secondary' }, 'Skip reproducing and go to the fix');
     skip.addEventListener('click', () => onGoalReached());
-    return [heading, branch, h('p', {}, 'Reproduce the issue first so you know what the reporter ran into.'), skip, renderChecks()];
+    return [
+      prHeading(l),
+      h(
+        'div',
+        { class: 'pr-locked' },
+        h(
+          'div',
+          {},
+          h('span', { class: 'locked-icon', 'aria-hidden': 'true' }, icon('eye', 24)),
+          h('p', { class: 'overline' }, 'First: reproduce'),
+          h('h3', {}, 'Reproduce the issue first…'),
+          h('p', {}, 'Use the Commons page the way the reporter does. Reproducing the report helps you verify the fix.'),
+          skip,
+        ),
+        h('div', { class: 'locked-checks' }, renderChecks('Current checks')),
+      ),
+    ];
   }
 
   const allCorrect = l.fixes.every((g) => g.options.find((o) => o.id === state.applied[g.id])?.correct);
   const allPass = state.checks.length > 0 && state.checks.every((c) => c.passed);
   const ready = allCorrect && allPass;
-  const merge = h('button', { type: 'button', class: 'merge', 'aria-disabled': String(!ready), 'data-key': 'merge' }, 'Merge pull request');
+  const merge = h(
+    'button',
+    { type: 'button', class: ready ? 'button button--success merge-button' : 'button merge-button', 'aria-disabled': String(!ready), 'data-key': 'merge' },
+    icon('merge', 18),
+    'Merge pull request',
+  );
   merge.addEventListener('click', () => {
     if (!ready) {
       announce(allPass ? 'Checks pass, but one suggestion still does not solve the problem for the reporter. Review the feedback.' : 'Checks are still failing. Apply a fix that passes them.');
@@ -331,22 +491,55 @@ function buildPR(): Node[] {
     announce(`Merged. ${l.issue.reporter.name} replied: ${l.merged.reply}`);
   });
 
-  return [heading, branch, h('h3', { tabindex: '-1', 'data-key': 'suggestions' }, 'Suggested changes'), ...l.fixes.map(renderFixGroup), renderChecks(), merge];
+  const lastGroup = l.fixes.find((g) => g.id === state.lastApplied);
+  const lastOption = lastGroup?.options.find((o) => o.id === state.applied[lastGroup.id]);
+
+  return [
+    prHeading(l),
+    h(
+      'div',
+      { class: 'pr-body' },
+      h('div', { class: 'suggestions' }, h('h3', { class: 'overline', tabindex: '-1', 'data-key': 'suggestions' }, 'Suggested changes'), ...l.fixes.map(renderFixGroup)),
+      h(
+        'div',
+        { class: 'checks-column' },
+        lastOption &&
+          h(
+            'div',
+            { class: lastOption.correct ? 'review-box review-box--good' : 'review-box' },
+            h('span', { class: 'avatar avatar--small', 'aria-hidden': 'true' }, 'RV'),
+            h('div', {}, h('strong', {}, lastOption.correct ? 'Reviewer: looks good' : 'Reviewer note'), h('p', {}, lastOption.feedback)),
+          ),
+        renderChecks(),
+        merge,
+      ),
+    ),
+  ];
 }
 
 function renderFixGroup(group: FixGroup): HTMLElement {
   const name = `fix-${group.id}`;
   const appliedId = state.applied[group.id];
-  const applied = group.options.find((o) => o.id === appliedId);
 
   const options = group.options.map((o) => {
     const id = `${name}-${o.id}`;
     const radio = h('input', { type: 'radio', name, id, value: o.id, checked: state.selected[group.id] === o.id }) as HTMLInputElement;
     radio.addEventListener('change', () => (state.selected[group.id] = o.id));
-    return h('div', { class: 'option' }, radio, h('label', { for: id }, o.label), renderDiff(group.find, o.replace));
+    return h(
+      'div',
+      { class: 'option-card' },
+      h(
+        'div',
+        { class: 'option-top' },
+        radio,
+        h('label', { for: id }, o.label),
+        appliedId === o.id ? h('span', { class: 'pill-applied' }, icon('check', 10), 'Applied') : h('span', { class: 'pill-selected', 'aria-hidden': 'true' }, icon('check', 10), 'Selected'),
+      ),
+      renderDiff(group.find, o.replace),
+    );
   });
 
-  const apply = h('button', { type: 'button', class: 'primary', 'data-key': `apply-${group.id}` }, 'Apply suggestion');
+  const apply = h('button', { type: 'button', class: 'button button--primary apply-button', 'data-key': `apply-${group.id}` }, icon('code', 16), 'Apply suggestion');
   apply.addEventListener('click', () => {
     const chosen = state.selected[group.id];
     if (!chosen) {
@@ -354,6 +547,7 @@ function renderFixGroup(group: FixGroup): HTMLElement {
       return;
     }
     state.applied[group.id] = chosen;
+    state.lastApplied = group.id;
     state.checkSoundPending = true;
     const option = group.options.find((o) => o.id === chosen)!;
     renderFrame();
@@ -363,54 +557,50 @@ function renderFixGroup(group: FixGroup): HTMLElement {
   return h(
     'fieldset',
     { class: 'fix-group' },
-    h('legend', {}, group.title),
-    ...options,
+    h('legend', {}, h('span', {}, group.title), h('small', {}, 'Choose the best fix')),
+    h('div', { class: 'option-grid' }, ...options),
     apply,
-    applied && h('p', { class: applied.correct ? 'feedback good' : 'feedback bad' }, h('strong', {}, applied.correct ? 'Reviewer: ' : 'Reviewer note: '), applied.feedback),
   );
 }
 
 function renderDiff(removed: string, added: string): HTMLElement {
-  const line = (tag: 'del' | 'ins', prefix: string, label: string, text: string) =>
-    h(tag, {}, h('span', { class: 'visually-hidden' }, label), h('span', { 'aria-hidden': 'true' }, prefix), text);
+  const line = (cls: 'removed' | 'added', prefix: string, label: string, text: string) =>
+    h('span', { class: cls }, h('span', { class: 'sr-only' }, label), h('span', { 'aria-hidden': 'true' }, prefix), text);
   return h(
-    'pre',
+    'code',
     { class: 'diff' },
-    ...removed.split('\n').flatMap((t) => [line('del', '- ', 'Remove: ', t), '\n']),
-    ...added.split('\n').flatMap((t) => [line('ins', '+ ', 'Add: ', t), '\n']),
+    ...removed.split('\n').map((t) => line('removed', '− ', 'Remove: ', t.trim())),
+    ...added.split('\n').map((t) => line('added', '+ ', 'Add: ', t.trim())),
   );
 }
 
-function renderChecks(): HTMLElement {
-  if (!state.checks.length) return h('p', { class: 'hint' }, 'Running checks…');
+function renderChecks(title?: string): HTMLElement {
+  if (!state.checks.length) return h('p', { class: 'console-hint' }, 'Running checks…');
   const passed = state.checks.filter((c) => c.passed).length;
+  const failing = state.checks.length - passed;
   return h(
     'div',
-    { class: 'checks' },
-    h('h3', {}, `Checks: ${passed} of ${state.checks.length} passing`),
+    {},
+    h(
+      'div',
+      { class: 'checks-head' },
+      h('h3', {}, title ?? `Checks: ${passed} of ${state.checks.length} passing`),
+      h('span', {}, failing ? `${failing} need${failing === 1 ? 's' : ''} attention` : 'All clear'),
+    ),
     h(
       'ul',
-      {},
+      { class: 'checks-list' },
       ...state.checks.map((c) =>
         h(
           'li',
-          { class: c.passed ? 'pass' : 'fail' },
-          h('span', { class: 'icon', 'aria-hidden': 'true' }, c.passed ? '✓' : '✕'),
-          h('span', {}, h('strong', {}, c.passed ? 'Passed: ' : 'Failed: '), c.label, h('br'), h('span', { class: 'detail' }, c.detail)),
+          { class: c.passed ? 'check-row passed' : 'check-row failed' },
+          h('span', { class: 'check-icon', 'aria-hidden': 'true' }, icon(c.passed ? 'check' : 'x', 15)),
+          h('div', {}, h('strong', {}, `${c.passed ? 'Passed' : 'Failed'}: ${c.label}`), h('span', {}, c.detail)),
         ),
       ),
     ),
   );
 }
-
-function renderSoundToggle() {
-  ui.soundToggle.setAttribute('aria-pressed', String(sound.enabled));
-}
-ui.soundToggle.addEventListener('click', () => {
-  sound.setEnabled(!sound.enabled);
-  renderSoundToggle();
-  announce(sound.enabled ? 'Sound effects on.' : 'Sound effects off.');
-});
 
 // ---------- Screens ----------
 
@@ -422,6 +612,7 @@ function showScreen(screen: Screen, moveFocus = true) {
   ui.levelsNav.hidden = screen !== 'game';
   ui.ending.hidden = screen !== 'ending';
   ui.homeBtn.hidden = screen === 'title';
+  document.body.dataset.screen = screen;
   if (screen === 'title') renderTitle();
   if (screen === 'ending') {
     renderEnding();
@@ -429,6 +620,7 @@ function showScreen(screen: Screen, moveFocus = true) {
   }
   const target = { title: 'title-heading', game: 'issue-heading', ending: 'ending-heading' }[screen];
   ui.skipLink.href = `#${screen === 'game' ? 'level-heading' : target}`;
+  window.scrollTo(0, 0);
   if (moveFocus) {
     const heading = $(target);
     heading.setAttribute('tabindex', '-1');
@@ -446,47 +638,85 @@ function play(index: number) {
 function renderTitle() {
   const next = levels.findIndex((l) => !completed.has(l.id));
   const resume = completed.size > 0 && next !== -1;
-  const start = h('button', { type: 'button', class: 'primary big' }, resume ? `Continue: Level ${next + 1}` : 'Start playing');
+  const start = h('button', { type: 'button', class: 'button button--primary button--big' }, resume ? `Continue: Level ${next + 1}` : 'Start playing', icon('arrow', 18));
   start.addEventListener('click', () => play(resume ? next : 0));
   const actions: HTMLElement[] = [start];
   if (completed.size > 0) {
-    const restart = h('button', { type: 'button', class: 'big' }, 'Start from level 1');
+    const restart = h('button', { type: 'button', class: 'button button--secondary button--big' }, 'Start from level 1');
     restart.addEventListener('click', () => play(0));
     actions.push(restart);
   }
   if (next === -1) {
-    const results = h('button', { type: 'button', class: 'big' }, 'See your results');
+    const results = h('button', { type: 'button', class: 'button button--ghost button--big' }, 'See your results');
     results.addEventListener('click', () => showScreen('ending'));
     actions.push(results);
   }
 
-  const step = (n: string, title: string, text: string) =>
-    h('li', {}, h('span', { class: 'key', 'aria-hidden': 'true' }, n), h('h3', {}, title), h('p', {}, text));
+  const step = (n: string, iconName: IconName, title: string, text: string) =>
+    h(
+      'li',
+      { class: 'step-card' },
+      h('span', { class: 'step-key', 'aria-hidden': 'true' }, n),
+      h('span', { class: 'step-icon', 'aria-hidden': 'true' }, icon(iconName, 22)),
+      h('h3', {}, title),
+      h('p', {}, text),
+    );
 
   ui.titleScreen.replaceChildren(
     h(
       'div',
-      { class: 'hero' },
-      h('p', { class: 'hero-keys', 'aria-hidden': 'true' }, h('kbd', { class: 'key key-xl key-wide' }, '⇧ Shift'), h('span', { class: 'plus' }, '+'), h('kbd', { class: 'key key-xl' }, 'Tab')),
-      h('h2', { id: 'title-heading' }, "Friday Community Night is coming. The website isn't ready."),
+      { class: 'hero-card' },
       h(
-        'p',
-        { class: 'lede' },
-        `People using a keyboard, a screen reader, switch access and a head pointer have reported ${levels.length} barriers on Commons, a small community nonprofit's website. You're a first-time contributor. Reproduce each issue, choose the right fix, pass the checks, and merge before Friday.`,
+        'div',
+        { class: 'hero-copy' },
+        h('p', { class: 'eyebrow' }, h('span', {}, 'GitHub Game Off 2026'), h('span', {}, 'Theme: SHIFT')),
+        h(
+          'div',
+          { class: 'logo logo--xl', 'aria-hidden': 'true' },
+          h('span', { class: 'keycap' }, '⇧ Shift'),
+          h('span', { class: 'logo-plus' }, '+'),
+          h('span', { class: 'keycap' }, 'Tab'),
+        ),
+        h('h1', { id: 'title-heading' }, 'Friday Community Night is coming. ', h('span', {}, "The website isn't ready.")),
+        h(
+          'p',
+          { class: 'hero-lede' },
+          `${levels.length} community members found barriers that stop them from signing up, registering, RSVPing, or donating. You're a first-time contributor: reproduce each issue, make a focused fix, and ship a more accessible Commons website.`,
+        ),
+        h('div', { class: 'hero-actions' }, ...actions),
       ),
-      h('div', { class: 'hero-actions' }, ...actions),
+      h(
+        'div',
+        { class: 'hero-illustration', 'aria-hidden': 'true' },
+        h('span', { class: 'browser-mini' }, h('i'), h('i'), h('i'), h('b', {}, 'Friday', h('br'), 'Community', h('br'), 'Night')),
+        h('span', { class: 'floating-key key-tab' }, 'Tab'),
+        h('span', { class: 'floating-key key-enter' }, 'Enter ↵'),
+        h('span', { class: 'focus-ring-demo' }),
+      ),
     ),
     h(
-      'ol',
-      { class: 'steps' },
-      step('1', 'Reproduce', 'Use the page the way the reporter does: keyboard only, screen reader view, or mouse and touch.'),
-      step('2', 'Fix', "Choose a suggested change. Some pass the automated checks and still don't help, so read the feedback."),
-      step('3', 'Merge', 'Pass the checks and hear back from the person who reported the issue.'),
+      'section',
+      { class: 'how-section how-section--revised', 'aria-labelledby': 'how-heading' },
+      h(
+        'div',
+        { class: 'section-heading' },
+        h('div', {}, h('p', { class: 'overline' }, 'How it works'), h('h2', { id: 'how-heading' }, 'One issue. Three clear steps.')),
+        h('span', { class: 'time-note' }, 'About 20 minutes'),
+      ),
+      h(
+        'ol',
+        { class: 'steps' },
+        step('1', 'eye', 'Reproduce', 'Use the same input or assistive technology as the person who reported the issue.'),
+        step('2', 'code', 'Fix', "Compare suggested changes and choose the one that removes the barrier. Some pass the automated checks and still don't help."),
+        step('3', 'merge', 'Merge', 'Pass the checks, merge the pull request, and hear back from the reporter.'),
+      ),
     ),
     h(
-      'p',
-      { class: 'title-note' },
-      "Playable with a keyboard, a screen reader, or touch. About 20 minutes. Progress is saved only in this browser. This game doesn't simulate disability. It teaches how assistive technology works and what developers need to build.",
+      'aside',
+      { class: 'game-note', 'aria-label': 'About this game' },
+      icon('tab', 22),
+      h('p', {}, h('strong', {}, 'Play your way. '), 'Playable with a keyboard, a screen reader, or touch. Progress is saved only in this browser.'),
+      h('p', {}, "This game doesn't simulate disability. It teaches how assistive technology works and what developers need to build."),
     ),
   );
 }
@@ -498,7 +728,7 @@ function renderEnding() {
   for (const l of fixed) for (const w of l.wcag) criteria.set(w.id, w.name);
   const sorted = [...criteria].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
 
-  const share = h('button', { type: 'button', class: 'primary' }, 'Share the game');
+  const share = h('button', { type: 'button', class: 'button button--primary button--big' }, 'Share the game');
   share.addEventListener('click', async () => {
     const url = location.href.split('#')[0];
     if (navigator.share) {
@@ -509,67 +739,73 @@ function renderEnding() {
     share.textContent = 'Link copied';
     announce('Link copied to the clipboard.');
   });
-  const replay = h('button', { type: 'button' }, 'Play again from level 1');
+  const replay = h('button', { type: 'button', class: 'button button--secondary button--big' }, 'Play again from level 1');
   replay.addEventListener('click', () => play(0));
-  const toTitle = h('button', { type: 'button' }, 'Title screen');
+  const toTitle = h('button', { type: 'button', class: 'button button--ghost button--big' }, 'Title screen');
   toTitle.addEventListener('click', () => showScreen('title'));
 
-  const card = (title: string, text: string, href: string, linkText: string) =>
+  const card = (iconName: IconName, kicker: string, title: string, href: string, linkText: string, featured = false) =>
     h(
       'li',
       {},
-      h('h4', {}, title),
-      h('p', {}, text),
-      h('a', { href, target: '_blank', rel: 'noopener' }, linkText, h('span', { class: 'visually-hidden' }, ' (opens in a new tab)')),
+      h(
+        'a',
+        { class: featured ? 'next-step-card featured' : 'next-step-card', href, target: '_blank', rel: 'noopener' },
+        h('span', { 'aria-hidden': 'true' }, icon(iconName, 20)),
+        h('small', {}, kicker),
+        h('strong', {}, title),
+        h('b', {}, linkText, icon('external', 14), h('span', { class: 'sr-only' }, '(opens in a new tab)')),
+      ),
     );
 
   const unfixed = levels
     .map((l, i) => ({ l, i }))
     .filter(({ l }) => !completed.has(l.id))
     .map(({ l, i }) => {
-      const btn = h('button', { type: 'button' }, `Level ${i + 1}: ${l.title}`);
+      const btn = h('button', { type: 'button' }, h('span', { 'aria-hidden': 'true' }, String(i + 1)), h('strong', {}, `Level ${i + 1}: ${l.title}`), icon('arrow', 16));
       btn.addEventListener('click', () => play(i));
       return h('li', {}, btn);
     });
 
-  const parts: Child[] = [
-    h(
-      'div',
-      { class: 'hero' },
-      h('p', { class: 'merged-badge' }, all ? 'All issues closed' : `${fixed.length} of ${levels.length} issues closed`),
-      h('h2', { id: 'ending-heading' }, all ? 'Friday Community Night is ready.' : `You fixed ${fixed.length} of ${levels.length} issues.`),
+  ui.ending.replaceChildren(
+    ...nodes([
+      h('p', { class: all ? 'ending-pill complete' : 'ending-pill partial' }, icon('merge', 16), all ? 'All issues closed' : `${fixed.length} of ${levels.length} issues closed`),
+      h('h1', { id: 'ending-heading' }, all ? 'Friday Community Night is ready.' : `You fixed ${fixed.length} of ${levels.length} issues.`),
       h(
         'p',
-        { class: 'lede' },
-        all
-          ? 'Everyone who reported a barrier can now sign up, register, RSVP and donate. Each one you fixed is a barrier people run into on real websites every day.'
-          : 'Some issues are still open. Pick up where you left off any time.',
+        { class: 'ending-lead' },
+        all ? 'Everyone can now sign up, register, RSVP, and donate with the tools and input methods that work for them.' : 'Some issues are still open. Pick up where you left off any time.',
       ),
-    ),
-    unfixed.length > 0 && h('section', { 'aria-labelledby': 'open-heading' }, h('h3', { id: 'open-heading' }, 'Still open'), h('ul', { class: 'unfixed' }, ...unfixed)),
-    sorted.length > 0 &&
+      unfixed.length > 0 && h('section', { class: 'still-open', 'aria-labelledby': 'open-heading' }, h('h2', { id: 'open-heading' }, 'Still open'), h('ul', {}, ...unfixed)),
+      sorted.length > 0 &&
+        h(
+          'section',
+          { class: 'criteria-card', 'aria-labelledby': 'learned-heading' },
+          h('p', { class: 'overline' }, 'WCAG 2.2 success criteria you practiced'),
+          h('h2', { id: 'learned-heading' }, 'Tools for the next site you work on'),
+          h(
+            'ul',
+            { class: 'criteria-list criteria-list--named' },
+            ...sorted.map(([id, name]) => h('li', { class: 'criteria-key' }, h('small', {}, 'WCAG'), id, h('b', {}, name))),
+          ),
+        ),
       h(
         'section',
-        { 'aria-labelledby': 'learned-heading' },
-        h('h3', { id: 'learned-heading' }, 'WCAG 2.2 success criteria you practiced'),
-        h('ul', { class: 'badges' }, ...sorted.map(([id, name]) => h('li', {}, h('span', { class: 'key key-sm' }, id), ' ', name))),
+        { class: 'keep-going', 'aria-labelledby': 'next-heading' },
+        h('p', { class: 'overline' }, 'Keep going'),
+        h('h2', { id: 'next-heading' }, 'Take the next step'),
+        h(
+          'ul',
+          { class: 'keep-grid' },
+          card('heart', 'Use what you learned', 'Fix a real accessibility issue', 'https://forgoodfirstissue.github.com/', 'For Good First Issue', true),
+          card('volume', 'Hear the web differently', 'Try a real screen reader', 'https://www.nvaccess.org/download/', 'Download NVDA'),
+          card('github', 'Shift+Tab is open source', 'Add a level', 'https://github.com/izzygld/shift-tab/blob/main/CONTRIBUTING.md', 'Contributing guide'),
+          card('code', 'Go deeper', 'Learn the guidelines', 'https://www.w3.org/WAI/fundamentals/', 'WAI fundamentals'),
+        ),
       ),
-    h(
-      'section',
-      { 'aria-labelledby': 'next-heading' },
-      h('h3', { id: 'next-heading' }, 'Keep going'),
-      h(
-        'ul',
-        { class: 'next-cards' },
-        card('Fix a real accessibility issue', 'Find open source projects for social good that need contributors, including accessibility fixes.', 'https://forgoodfirstissue.github.com/', 'For Good First Issue'),
-        card('Try a real screen reader', 'NVDA is free for Windows. VoiceOver is built into every Mac and iPhone.', 'https://www.nvaccess.org/download/', 'Download NVDA'),
-        card('Add a level', 'Levels are plain HTML and JSON. Add one with a pull request.', 'https://github.com/izzygld/shift-tab/blob/main/CONTRIBUTING.md', 'Contributing guide'),
-        card('Learn the guidelines', 'The W3C Web Accessibility Initiative explains each guideline with examples.', 'https://www.w3.org/WAI/fundamentals/', 'WAI fundamentals'),
-      ),
-    ),
-    h('div', { class: 'hero-actions' }, share, replay, toTitle),
-  ];
-  ui.ending.replaceChildren(...parts.filter((p): p is Node => p instanceof Node));
+      h('div', { class: 'ending-buttons' }, share, replay, toTitle),
+    ]),
+  );
 }
 
 renderSoundToggle();

@@ -45,6 +45,7 @@ export interface LevelData {
     custom: string[];
   };
   merged: {
+    headline?: string;
     reply: string;
     learn: string[];
   };

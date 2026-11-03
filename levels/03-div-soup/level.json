@@ -84,6 +84,7 @@
     "custom": ["native-controls"]
   },
   "merged": {
+    "headline": "Every control is reachable now.",
     "reply": "My switch stops on Register now, and I can open the menu. Registered, and the soup sounds great.",
     "learn": [
       "If it does something when clicked, use a <button>. If it goes somewhere, use <a href>.",
