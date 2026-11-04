@@ -11,6 +11,7 @@ import { icon, type IconName } from './icons';
 import type { FixGroup, Level, Mode } from './types';
 
 const STORAGE_KEY = 'shift-tab:progress';
+const THEME_KEY = 'shift-tab:theme';
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -31,6 +32,8 @@ const ui = {
   announcer: $('announcer'),
   progress: $('progress'),
   soundToggle: $<HTMLButtonElement>('sound-toggle'),
+  themeToggle: $<HTMLButtonElement>('theme-toggle'),
+  playGuide: $('play-guide'),
   url: $('frame-url'),
   titleScreen: $('title-screen'),
   game: $('main'),
@@ -136,6 +139,25 @@ function renderSoundToggle() {
 ui.soundToggle.addEventListener('click', () => {
   sound.setEnabled(!sound.enabled);
   renderSoundToggle();
+});
+
+type Theme = 'dark' | 'light';
+
+// index.html applies a saved theme before first paint; dark is the default.
+function applyTheme(theme: Theme) {
+  document.documentElement.dataset.theme = theme;
+  ui.themeToggle.setAttribute('aria-checked', String(theme === 'dark'));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#08123c' : '#f8fafc');
+}
+
+ui.themeToggle.addEventListener('click', () => {
+  const next: Theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch {
+    // Storage can be unavailable (private mode); the theme still applies for this visit.
+  }
 });
 
 // ---------- Level lifecycle ----------
@@ -354,6 +376,32 @@ function renderIssue() {
       h('p', {}, state.reproduced ? l.task.afterReproduce : l.task.instruction),
     ),
     h('div', { class: 'learn-links' }, h('h3', {}, 'Learn more'), ...l.wcag.map((w) => external(w.url, `${w.id} ${w.name}`))),
+  );
+  renderPlayGuide();
+}
+
+function renderPlayGuide() {
+  const current = state.merged ? 3 : state.reproduced ? 1 : 0;
+  const steps = [
+    ['Try the page', 'Find the problem'],
+    ['Choose a fix', 'Pick the best code'],
+    ['Finish', 'Pass checks and merge'],
+  ];
+  ui.playGuide.replaceChildren(
+    h('p', {}, h('span', {}, `Level ${state.index + 1}`), h('strong', {}, level().title)),
+    h(
+      'ol',
+      {},
+      ...steps.map(([title, text], i) => {
+        const done = i < current;
+        return h(
+          'li',
+          { class: done ? 'done' : i === current ? 'current' : '', 'aria-current': i === current ? 'step' : false },
+          h('span', { 'aria-hidden': 'true' }, done ? icon('check', 16) : String(i + 1)),
+          h('div', {}, h('b', {}, title), h('small', {}, text), done && h('span', { class: 'sr-only' }, ' (done)')),
+        );
+      }),
+    ),
   );
 }
 
@@ -816,5 +864,6 @@ function renderEnding() {
 }
 
 renderSoundToggle();
+applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 loadLevel(0);
 showScreen('title', false);

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,10 +8,17 @@
       name="description"
       content="Navigate the web the way millions of people do every day, then fix it. An open source puzzle game about web accessibility."
     />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#08123c" />
+    <script>
+      // Apply a saved light theme before first paint. Dark is the default.
+      try {
+        if (localStorage.getItem('shift-tab:theme') === 'light') document.documentElement.dataset.theme = 'light';
+      } catch {}
+    </script>
   </head>
-  <body>
+  <body data-screen="title">
     <a class="skip-link" id="skip-link" href="#title-heading">Skip to main content</a>
+    <div class="title-decor" aria-hidden="true"></div>
 
     <header class="topbar">
       <div class="topbar-brand">
@@ -21,9 +28,14 @@
         <button id="home-btn" class="topbar-title" type="button" hidden>Title screen</button>
       </div>
       <div class="progress-wrap" id="progress"></div>
-      <button id="sound-toggle" class="toggle-row toggle-row--dark" type="button" role="switch" aria-checked="true">
-        <span class="toggle" aria-hidden="true"><span></span></span><span>Sound effects</span>
-      </button>
+      <div class="topbar-controls">
+        <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="true">
+          <span class="theme-symbol" aria-hidden="true"><i></i></span><span>Dark mode</span>
+        </button>
+        <button id="sound-toggle" class="toggle-row" type="button" role="switch" aria-checked="true">
+          <span class="toggle" aria-hidden="true"><span></span></span><span>Sound effects</span>
+        </button>
+      </div>
     </header>
 
     <main id="title-screen" class="title-main title-main--revised" aria-labelledby="title-heading"></main>
@@ -34,6 +46,7 @@
 
     <main id="main" class="game-main" aria-labelledby="game-heading" hidden>
       <h1 id="game-heading" class="sr-only">Shift+Tab game</h1>
+      <section id="play-guide" class="play-guide" aria-label="Level steps"></section>
       <div class="workspace">
         <aside id="issue" class="issue-card panel" aria-labelledby="issue-heading"></aside>
 

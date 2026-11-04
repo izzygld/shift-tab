@@ -15,16 +15,23 @@ export const levels: LevelInfo[] = readdirSync(root)
 
 export const allLevelIds = levels.map((l) => l.id);
 
-export async function start(page: Page, progress: string[] = []) {
-  await page.addInitScript((ids) => {
-    // Seed once per test so later navigations keep the progress the game saved.
-    if (sessionStorage.getItem('seeded')) return;
-    sessionStorage.setItem('seeded', '1');
-    localStorage.setItem('shift-tab:progress', JSON.stringify(ids));
-    localStorage.setItem('shift-tab:sound', 'off');
-  }, progress);
+export type Theme = 'dark' | 'light';
+
+export async function start(page: Page, progress: string[] = [], theme?: Theme) {
+  await page.addInitScript(
+    ({ ids, theme }) => {
+      // Seed once per test so later navigations keep the progress the game saved.
+      if (sessionStorage.getItem('seeded')) return;
+      sessionStorage.setItem('seeded', '1');
+      localStorage.setItem('shift-tab:progress', JSON.stringify(ids));
+      localStorage.setItem('shift-tab:sound', 'off');
+      if (theme) localStorage.setItem('shift-tab:theme', theme);
+    },
+    { ids: progress, theme },
+  );
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: /Friday Community Night is coming/ })).toBeVisible();
+  if (theme) await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 }
 
 export async function openLevel(page: Page, index: number) {

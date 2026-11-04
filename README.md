@@ -38,7 +38,7 @@ npm test          # accessibility, keyboard and mobile tests (Playwright + axe)
 
 A game about accessibility has to pass its own test. Every push runs a [Playwright](https://playwright.dev) + [axe-core](https://github.com/dequelabs/axe-core) suite in CI, and nothing deploys unless it passes:
 
-- **axe scans** of the title screen, every level (before reproducing, alternate modes, fixing, merged) and both ending screens, against WCAG 2.0/2.1/2.2 A and AA plus best practices.
+- **axe scans** of the title screen, every level (before reproducing, alternate modes, fixing, merged) and both ending screens, in both the dark (default) and light themes, against WCAG 2.0/2.1/2.2 A and AA plus best practices.
 - **A full keyboard-only playthrough** of all levels: real Tab, arrow keys, Enter and Space, with a visible focus indicator checked at every step, focus restored after every re-render, and the level 4 focus trap escaped with Escape.
 - **Mobile** (iPhone Safari and Android Chrome emulation): no horizontal scrolling on any screen, and moving between issues returns to the top.
 - **Reflow at 320px** (WCAG 1.4.10) and **reduced motion**.
